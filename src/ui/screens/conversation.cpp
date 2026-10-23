@@ -19,6 +19,7 @@ struct DrawCtx {
   const mc_font_t* f;
   int x, y;
   uint8_t col;
+  bool mention;     // the previous line ended inside a @[mention]
 };
 
 void drawLine(void* p, const char* s, int len, int line) {
@@ -27,7 +28,7 @@ void drawLine(void* p, const char* s, int len, int line) {
   if (len >= (int)sizeof tmp) len = sizeof tmp - 1;
   memcpy(tmp, s, len);
   tmp[len] = 0;
-  d->c->text(d->x, d->y + line * d->f->height, tmp, d->f, d->col);
+  d->c->text(d->x, d->y + line * d->f->height, tmp, d->f, d->col, -1, 0, &d->mention);
 }
 
 class ConversationScreen : public Screen {
@@ -97,7 +98,7 @@ public:
 
     if (n == 0) {
       const char* msg = "No messages yet. Press Enter to write.";
-      DrawCtx d{&c, a.fMed(), r.x + 10, mr.y + 30, C_DIM};
+      DrawCtx d{&c, a.fMed(), r.x + 10, mr.y + 30, C_DIM, false};
       wrapText(msg, a.fMed(), r.w - 20, drawLine, &d);
     }
 
@@ -401,7 +402,7 @@ private:
       }
     }
 
-    DrawCtx d{&c, f, r.x + 9, top + a.mx().meta, C_TEXT};
+    DrawCtx d{&c, f, r.x + 9, top + a.mx().meta, C_TEXT, false};
     wrapText(m.text, f, textW, drawLine, &d);
   }
 

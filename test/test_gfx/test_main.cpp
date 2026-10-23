@@ -552,6 +552,66 @@ void test_emoji_scale_doubles_the_art() {
 
 #endif  // MC_UNICODE_EMOJI
 
+
+// --- @[mentions] ---------------------------------------------------------
+
+void test_mention_brackets_take_no_room() {
+  // "@[Nick]" shows as "@Nick": five cells, not seven.
+  TEST_ASSERT_EQUAL(5 * 8, Canvas::textWidth("@[Nick]", &font_large));
+  TEST_ASSERT_EQUAL((5 + 1 + 2) * 8, Canvas::textWidth("@[Nick] hi", &font_large));
+  // Ordinary brackets and a lone @ stay as typed.
+  TEST_ASSERT_EQUAL(10 * 8, Canvas::textWidth("[brackets]", &font_large));
+  TEST_ASSERT_EQUAL(5 * 8, Canvas::textWidth("a@b.c", &font_large));
+  // Cut short (a preview): a mention to the end, still without the opening "@[".
+  TEST_ASSERT_EQUAL(4 * 8, Canvas::textWidth("@[Ali", &font_large));
+}
+
+void test_mention_is_drawn_on_the_selection_colour() {
+  s_c.noClip();
+  s_c.clear(0);
+  s_c.text(0, 0, "@[Ab] c", &font_large, C_TEXT);
+  // Inside the three-cell mention every pixel is the selection colour or the accent text;
+  // the cells after it are the plain background.
+  bool accent = false;
+  for (int y = 0; y < 16; y++)
+    for (int x = 0; x < 3 * 8; x++) {
+      uint8_t p = s_c.get(x, y);
+      TEST_ASSERT_TRUE(p == C_SEL || p == C_ACCENT);
+      accent = accent || p == C_ACCENT;
+    }
+  TEST_ASSERT_TRUE(accent);
+  for (int y = 0; y < 16; y++) TEST_ASSERT_EQUAL(C_BG, s_c.get(3 * 8 + 1, y));   // the gap after it
+}
+
+void test_mention_continues_over_a_wrapped_line() {
+  // A name too long for the line: the second line starts inside the mention, so it is
+  // still highlighted and its closing bracket still takes no room.
+  memset(s_line, 0, sizeof s_line);
+  int n = wrapText("@[aaa bbb ccc] ok", &font_large, 8 * 9, collect, nullptr);
+  TEST_ASSERT_EQUAL(2, n);
+  TEST_ASSERT_EQUAL_STRING("@[aaa bbb", s_line[0]);
+  TEST_ASSERT_EQUAL_STRING("ccc] ok", s_line[1]);
+  bool m = true;                                   // as drawLine passes it on
+  TEST_ASSERT_EQUAL(3 * 8 + 8 + 2 * 8, Canvas::textWidth("ccc] ok", &font_large, true));
+  s_c.noClip();
+  s_c.clear(0);
+  s_c.text(0, 0, "@[aaa bbb", &font_large, C_TEXT, -1, 0, &m);
+  TEST_ASSERT_TRUE(m);                             // the first line ended inside it
+  s_c.text(0, 0, "ccc] ok", &font_large, C_TEXT, -1, 0, &m);
+  TEST_ASSERT_FALSE(m);                            // and the second closed it
+  bool sel = false;                                // the second line's cells are on the highlight
+  for (int x = 0; x < 3 * 8; x++) sel = sel || s_c.get(x, 1) == C_SEL;
+  TEST_ASSERT_TRUE(sel);
+}
+
+void test_mention_ends_at_a_newline() {
+  memset(s_line, 0, sizeof s_line);
+  wrapText("@[open\nnext line", &font_large, 8 * 20, collect, nullptr);
+  TEST_ASSERT_EQUAL_STRING("@[open", s_line[0]);
+  TEST_ASSERT_EQUAL_STRING("next line", s_line[1]);
+  TEST_ASSERT_EQUAL(9 * 8, Canvas::textWidth("next line", &font_large));         // plain: nothing carried over
+}
+
 void test_wrap_breaks_at_spaces() {
   memset(s_line, 0, sizeof s_line);
   int n = wrapText("hello world again", &font_large, 8 * 11, collect, nullptr);  // 11 cols
@@ -599,6 +659,10 @@ int main(int, char**) {
   RUN_TEST(test_smallest_size_shows_one_replacement_per_emoji);
   RUN_TEST(test_emoji_scale_doubles_the_art);
 #endif
+  RUN_TEST(test_mention_brackets_take_no_room);
+  RUN_TEST(test_mention_is_drawn_on_the_selection_colour);
+  RUN_TEST(test_mention_continues_over_a_wrapped_line);
+  RUN_TEST(test_mention_ends_at_a_newline);
   RUN_TEST(test_wrap_breaks_at_spaces);
   RUN_TEST(test_wrap_hard_breaks_long_words);
   return UNITY_END();

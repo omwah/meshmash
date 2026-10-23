@@ -50,10 +50,13 @@ public:
 
   // UTF-8 text. Returns the x just past the last glyph drawn. bg < 0 is
   // transparent. maxw > 0 clips with an ellipsis when the text is wider.
-  int text(int x, int y, const char* s, const mc_font_t* f, uint8_t fg, int bg = -1, int maxw = 0);
-  static int textWidth(const char* s, const mc_font_t* f);
+  int text(int x, int y, const char* s, const mc_font_t* f, uint8_t fg, int bg = -1, int maxw = 0,
+           bool* mention = nullptr);
+  // `mention`: s starts inside a @[mention] (a wrapped line that continues one); text() takes
+  // and updates it the same way. A mention shows as @Name on a highlight, without the brackets.
+  static int textWidth(const char* s, const mc_font_t* f, bool mention = false);
   // Bytes of `s` that fit in `maxw` pixels without breaking a UTF-8 sequence.
-  static int fitBytes(const char* s, const mc_font_t* f, int maxw);
+  static int fitBytes(const char* s, const mc_font_t* f, int maxw, bool mention = false);
 
   // Text shifted left by `offset` pixels and cut to [x, x+maxw): one frame of
   // a marquee.
@@ -69,7 +72,7 @@ public:
   // The text element at the start of s: a glyph, an emoji sequence, or
   // something that takes no room (a variation selector). Returns its bytes
   // (0 at the terminator) and its advance in pixels.
-  static int elem(const char* s, const mc_font_t* f, int* adv);
+  static int elem(const char* s, const mc_font_t* f, int* adv, bool* mention = nullptr);
 
   // Limit drawing to a rectangle (for scrolling regions).
   void clip(int x, int y, int w, int h);

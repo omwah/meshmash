@@ -1,0 +1,19 @@
+# @[Name] mentions show as @Name on a highlight, without the brackets: at the start of
+# a message, in the middle, with spaces in the name, wrapped over lines, with an emoji,
+# cut short, and next to ordinary text with brackets.
+rx dm 0 @[Rose01] wassup
+rx dm 0 @[Rose01] >Hello Hello
+rx dm 0 @[News Junkie Portable] Cool!
+rx dm 0 @[T Deck Rover] yes Beautiful day here in Torrance, Crisp clear air
+rx dm 0 thanks @[Alice Kestrel] and @[Bob] for the help 🪶
+rx dm 0 @[A mention with a very long name that has to wrap over more than one line] ok
+rx dm 0 plain [brackets] and an email a@b.c stay as typed
+wait 200
+wait 200
+key enter
+key down 6
+shot mentions-1
+key down 6
+shot mentions-2
+key down 6
+shot mentions-3

@@ -18,6 +18,9 @@ hardware, so other devices can be added as new board directories.
   falls back to Noto Sans Mono, and emoji are drawn in colour from Noto
   Color Emoji. What a build carries is chosen at build time: see
   [docs/unicode.md](docs/unicode.md).
+- **Mentions.** MeshCore writes a mention as `@[Name]`; here it shows as @Name on a
+  highlight (the selection colour, in the theme's accent), brackets hidden, also when
+  the name wraps over lines.
 - **Colour themes.** Every colour is a *role* (header, selection, unread,
   channel, repeater...). A theme is a 16-entry palette, so switching is
   instant. Themes: Midnight, Amber, Phosphor, Contrast, Daylight, Ocean.

@@ -1,5 +1,6 @@
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/emoji.h"
+#include "ui/theme.h"
 #include <initializer_list>
 #include <string.h>
 
@@ -168,6 +169,7 @@ struct Elem {
   Glyph glyph = {nullptr, nullptr};    // a monochrome glyph, or
   const mc_emoji_t* emoji = nullptr;   // a colour emoji
   int emojiGlyph = 0;
+  bool pill = false;                   // part of a @[mention]: drawn on a highlight
 };
 
 // Whether the font chain itself (not its replacement glyph) draws cp.
@@ -186,7 +188,7 @@ static bool invisible(uint32_t cp) {
          (cp >= 0x1F3FB && cp <= 0x1F3FF) || (cp >= 0xE0020 && cp <= 0xE007F);
 }
 
-static Elem nextElem(const mc_font_t* f, const char* s) {
+static Elem nextPlain(const mc_font_t* f, const char* s) {
   Elem el;
   uint32_t cp;
   el.bytes = utf8Decode(s, nullptr, &cp);
@@ -222,8 +224,35 @@ static Elem nextElem(const mc_font_t* f, const char* s) {
   return el;
 }
 
-int Canvas::elem(const char* s, const mc_font_t* f, int* adv) {
-  Elem el = nextElem(f, s);
+// The text at s, given whether it is inside a @[mention] (updated). A mention is
+// written @[Name]; it shows as @Name on a highlight, the brackets not at all. A "@["
+// with no "]" before the end of the line (a preview cut short) is a mention to the end.
+static Elem nextElem(const mc_font_t* f, const char* s, bool& mention) {
+  if (s[0] == '@' && s[1] == '[' && !mention) {
+    mention = true;
+    Elem el;
+    el.bytes = 2;
+    el.glyph = resolve(f, '@');
+    el.adv = el.glyph.layer->width;
+    el.pill = true;
+    return el;
+  }
+  if (mention && s[0] == ']') {          // the closing bracket takes no room
+    mention = false;
+    Elem el;
+    el.bytes = 1;
+    return el;
+  }
+  if (mention && s[0] == '\n') mention = false;
+  Elem el = nextPlain(f, s);
+  el.pill = mention && el.bytes;
+  return el;
+}
+
+int Canvas::elem(const char* s, const mc_font_t* f, int* adv, bool* mention) {
+  bool m = mention ? *mention : false;
+  Elem el = nextElem(f, s, m);
+  if (mention) *mention = m;
   *adv = el.adv;
   return el.bytes;
 }
@@ -241,6 +270,10 @@ static void drawGlyph(Canvas& c, int x, int y, const Glyph& g, uint8_t fg) {
 
 // Draw an element with its top left at (x, y).
 static void drawElem(Canvas& c, int x, int y, const Elem& el, const mc_font_t* f, uint8_t fg) {
+  if (el.pill) {                       // a mention: accent text on the selection colour
+    if (el.adv) c.fillRect(x, y, el.adv, f->height, C_SEL);
+    fg = C_ACCENT;
+  }
   if (el.emoji) {
     if (c.emoji(x, y, el.emoji, el.emojiGlyph)) return;
     drawGlyph(c, x, y, resolve(f, REPLACEMENT), fg);   // too many emoji on screen
@@ -249,21 +282,21 @@ static void drawElem(Canvas& c, int x, int y, const Elem& el, const mc_font_t* f
   }
 }
 
-int Canvas::textWidth(const char* s, const mc_font_t* f) {
+int Canvas::textWidth(const char* s, const mc_font_t* f, bool mention) {
   int w = 0;
   for (;;) {
-    Elem el = nextElem(f, s);
+    Elem el = nextElem(f, s, mention);
     if (!el.bytes) return w;
     w += el.adv;
     s += el.bytes;
   }
 }
 
-int Canvas::fitBytes(const char* s, const mc_font_t* f, int maxw) {
+int Canvas::fitBytes(const char* s, const mc_font_t* f, int maxw, bool mention) {
   const char* p = s;
   int w = 0;
   for (;;) {
-    Elem el = nextElem(f, p);
+    Elem el = nextElem(f, p, mention);
     if (!el.bytes || w + el.adv > maxw) break;
     w += el.adv;
     p += el.bytes;
@@ -271,26 +304,29 @@ int Canvas::fitBytes(const char* s, const mc_font_t* f, int maxw) {
   return (int)(p - s);
 }
 
-int Canvas::text(int x, int y, const char* s, const mc_font_t* f, uint8_t fg, int bg, int maxw) {
+int Canvas::text(int x, int y, const char* s, const mc_font_t* f, uint8_t fg, int bg, int maxw, bool* mention) {
+  bool m = mention ? *mention : false;
+  const bool m0 = m;
   int limit = 1 << 30;
   bool ell = false;
-  if (maxw > 0 && textWidth(s, f) > maxw) {
+  if (maxw > 0 && textWidth(s, f, m0) > maxw) {
     limit = maxw - f->width;               // room for the ellipsis
     ell = true;
   }
   if (bg >= 0) {
-    int w = ell ? maxw : textWidth(s, f);
+    int w = ell ? maxw : textWidth(s, f, m0);
     fillRect(x, y, w, f->height, (uint8_t)bg);
   }
   int cx = x;
   for (;;) {
-    Elem el = nextElem(f, s);
+    Elem el = nextElem(f, s, m);
     if (!el.bytes) break;
     s += el.bytes;
     if (cx + el.adv - x > limit) break;
     drawElem(*this, cx, y, el, f, fg);
     cx += el.adv;
   }
+  if (mention) *mention = m;
   if (ell) {
     // Three dots on the baseline (Spleen's small fonts have no U+2026).
     int by = y + f->height - 3;
@@ -306,8 +342,9 @@ void Canvas::textScrolled(int x, int y, const char* s, const mc_font_t* f, uint8
   _cx0 = x > c0 ? x : c0;
   _cx1 = x + maxw < c1 ? x + maxw : c1;
   int cx = x - offset;
+  bool m = false;
   for (;;) {
-    Elem el = nextElem(f, s);
+    Elem el = nextElem(f, s, m);
     if (!el.bytes) break;
     s += el.bytes;
     if (cx + el.adv > _cx0 && cx < _cx1) drawElem(*this, cx, y, el, f, fg);

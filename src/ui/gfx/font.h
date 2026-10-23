@@ -26,7 +26,7 @@ typedef struct {
 // A glyph is w x h pixels, row after row, run-length coded: each byte is a run
 // of 1..16 equal pixels, the run length minus one in the high nibble and the
 // pixel in the low nibble (0 transparent, 1..15 select `pal`, RGB565 with
-// entry 0 unused). Runs cross row ends. Glyph i is the stream from offs[i];
+// entry 0 unused). Runs cross row ends. Glyph i is the stream from offs[i] (32 bits: a size can pass 64 KB);
 // the next glyph's offset ends it. It is drawn `scale` times larger, so the
 // advance is w * scale. `bitmaps` may be null (a size too small to show
 // emoji): a matched sequence then takes one replacement glyph's place.
@@ -47,7 +47,7 @@ typedef struct {
     uint8_t w, h, scale;
     const uint16_t *pal;
     const uint8_t *bitmaps;
-    const uint16_t *offs;
+    const uint32_t *offs;
     const mc_emoji_seqs_t *seqs;
 } mc_emoji_t;
 

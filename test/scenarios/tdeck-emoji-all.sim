@@ -1,0 +1,17 @@
+# The T-Deck carries the whole Noto emoji set, not just the common ones: rarer
+# emoji, many skin tones, long joined sequences, subdivision-free flags, signs.
+rx dm 0 Rare: 🫠 🫨 🪿 🧌 🪼 🫎 🫏 🪽 🐦‍⬛ 🛟 🪩 🪬 🧿 🪶
+rx dm 0 Tones: 👍🏻 👍🏼 👍🏽 👍🏾 👍🏿 🫶🏽 🧑🏽‍🚀 🤝🏿
+rx dm 0 Joined: 👩‍👩‍👧‍👦 🧑‍🤝‍🧑 👨🏻‍❤️‍💋‍👨🏿 🏳️‍⚧️ 🏴‍☠️ 🐻‍❄️
+rx dm 0 Flags: 🇦🇺 🇧🇷 🇨🇭 🇩🇪 🇪🇸 🇫🇷 🇬🇧 🇮🇳 🇯🇵 🇰🇷 🇲🇽 🇳🇿 🇿🇦 🇨🇦 🇺🇳 🇪🇺
+rx dm 0 Signs: 🆗 🔟 ♻️ ⚠️ ☢️ 🔱 🕉️ ☮️ ⚛️ ♾️ ©️ ®️ ™️
+wait 200
+tap 100 40
+key down 9
+shot all-chat-1
+key down 6
+shot all-chat-2
+key down 6
+shot all-chat-3
+key down 6
+shot all-chat-4

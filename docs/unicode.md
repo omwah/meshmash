@@ -124,13 +124,16 @@ transparent. The palette is chosen by k-means weighted so greens and blues are
 not lost to the yellows that fill the faces. `flush` decodes a glyph once per
 band of up to 8 rows, down to the last row the band needs.
 
-The emoji a build carries are `scripts/emoji_set.py`: `core` (105: everyday
-reactions, signs, and what a mesh radio user talks about; the Cardputer) and
-`common` (359 more, in order of use: faces, gestures, objects, weather,
-vehicles, food, animals, a score of flags, joined sequences, skin tones for
-five gestures, keycaps; the T-Deck, 462 in all). `bytes` in the profile caps
-the uncompressed bitmaps; 16-bit offsets limit one size to 64 KB coded, and the
-generator says so if a tier would pass it (`std`'s 24 px art is at 63 KB).
+The emoji a build carries are `scripts/emoji_set.py` and the font itself: `core`
+(105: everyday reactions, signs, and what a mesh radio user talks about; the
+Cardputer), `common` (359 more, in order of use) and `all` (every other sequence
+Noto Color Emoji draws: 5,644 sequences in all, over 4,003 distinct images, with
+sequences that share art pointing at one bitmap). The T-Deck's `std` profile takes
+all three, at three sizes. `bytes` in a profile can cap the uncompressed bitmaps
+(none is set now). Offsets into the art are 32-bit, because one size passes 64 KB
+coded (24 px: 555 KB). The full set costs about 1.1 MB of flash, which is why only the
+T-Deck, with a 6.25 MB app partition, carries it; `MC_UNICODE=std,-emoji-all` goes
+back to the 462 most useful (about 125 KB).
 
 ## Measurements
 
@@ -139,10 +142,13 @@ the profile is the only difference):
 
 | Build | Spleen only | `min` | `std` |
 |---|---|---|---|
-| `cardputer_adv` flash | 987,952 | 1,008,688 (+20.7 KB) | 1,135,632 (+147.7 KB) |
-| `tdeck` flash | 995,520 | 1,016,256 (+20.7 KB) | 1,143,216 (+147.7 KB) |
-| static RAM (any profile) | 118,696 (Cardputer) | | |
-| static RAM (any profile) | 62,064 (T-Deck) | | |
+| `cardputer_adv` flash | 989,232 | 1,010,560 (+20.8 KB) | 2,187,344 (+1,169 KB) |
+| `tdeck` flash | 996,880 | 1,018,208 (+20.8 KB) | 2,194,992 (+1,169 KB) |
+| static RAM (any profile) | 118,792 (Cardputer) | | |
+| static RAM (any profile) | 62,160 (T-Deck) | | |
+
+`min` is the Cardputer's profile and `std` the T-Deck's; a Cardputer build with `std`
+would not fit its flash budget.
 
 Before any of this work (the CI run after the navigation icons, which changed
 almost nothing), `cardputer_adv` was 965.9 KB and 114.8 KB of static RAM, and

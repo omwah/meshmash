@@ -192,13 +192,30 @@ def generate(emoji, font_path, out):
     sizes = emoji["sizes"]
     natives = sorted({px for v in sizes.values() if v for px in [v[0]]})
     per = sum((px * px + 1) // 2 for px in natives)       # raw bytes a glyph would cost at every native size
-    toks = [t for t in emoji_set.tokens(emoji["tiers"]) if ef.glyph(t)]
-    dropped = len(emoji_set.tokens(emoji["tiers"])) - len(toks)
+    wanted = emoji_set.tokens(emoji["tiers"])
+    if "all" in emoji["tiers"]:
+        # Everything else the font draws: real emoji only (not its letters, digits, spaces,
+        # private-use codes or joiners alone), shortest sequences first.
+        seen = set(wanted)
+        rest = [k for k in ef.seq if k not in seen and ef.seq[k] in ef.strike and not (
+            len(k) == 1 and (k[0] < 0x80 and chr(k[0]) not in "#*0123456789" or 0xE000 <= k[0] <= 0xF8FF
+                              or k[0] in (0xA0, 0x200D, 0xFE0F, 0x20E3)))]
+        wanted += sorted(rest, key=lambda k: (len(k), k))
+    toks = [t for t in wanted if ef.glyph(t) and ef.glyph(t) in ef.strike]
+    dropped = len(wanted) - len(toks)
     if emoji["bytes"]:
         toks = toks[:emoji["bytes"] // per]
-    pngs = [ef.png(ef.glyph(t)) for t in toks]
+    # One bitmap per distinct glyph: sequences that share art (a plain and a
+    # selector form, or aliases) point at the same one.
+    glyph_names, glyph_of = [], []
+    for t in toks:
+        gname = ef.glyph(t)
+        if gname not in glyph_names:
+            glyph_names.append(gname)
+        glyph_of.append(glyph_names.index(gname))
+    pngs = [ef.png(n) for n in glyph_names]
 
-    lines = [f"emoji: {len(toks)} sequences from tiers {','.join(emoji['tiers'])}"
+    lines = [f"emoji: {len(toks)} sequences, {len(glyph_names)} distinct images, from tiers {','.join(emoji['tiers'])}"
              f"{' (cap %d bytes of bitmaps)' % emoji['bytes'] if emoji['bytes'] else ''}"
              f" (Noto Color Emoji {ef.version.split(';')[0]})"]
     if dropped:
@@ -209,8 +226,10 @@ def generate(emoji, font_path, out):
     order = sorted(range(len(toks)), key=lambda i: toks[i])
     cps, tab = [], []
     for i in order:
-        tab.append((len(cps), len(toks[i]), i))
+        tab.append((len(cps), len(toks[i]), glyph_of[i]))
         cps.extend(toks[i])
+    if len(cps) > 0xFFFF or len(tab) > 0xFFFF or len(pngs) > 0xFFFF:
+        raise SystemExit("gen_emoji: more emoji than the 16-bit tables in font.h reach")
     body.append("static const uint32_t emoji_cps[] = {")
     for i in range(0, len(cps), 10):
         body.append("    " + " ".join(f"0x{c:x}," for c in cps[i:i + 10]))
@@ -230,21 +249,18 @@ def generate(emoji, font_path, out):
             offs.append(len(bits))
             bits.extend(bitmap_bytes(indexed(im, pal)))
         offs.append(len(bits))
-        if len(bits) > 0xFFFF:
-            raise SystemExit(f"gen_emoji: {px}x{px} emoji need {len(bits)} bytes, past what 16-bit offsets "
-                             f"reach; drop a tier or lower the byte cap")
-        total += len(bits) + 2 * len(offs) + 32
+        total += len(bits) + 4 * len(offs) + 32
         body.append(f"static const uint16_t emoji_pal_{px}[16] = {{0, "
                     + ", ".join("0x%04x" % rgb565(c) for c in pal) + "};")
         body.append(f"static const uint8_t emoji_bits_{px}[] = {{")
         for i in range(0, len(bits), 24):
             body.append("    " + ",".join("0x%02x" % b for b in bits[i:i + 24]) + ",")
         body.append("};")
-        body.append(f"static const uint16_t emoji_offs_{px}[] = {{")
+        body.append(f"static const uint32_t emoji_offs_{px}[] = {{")
         for i in range(0, len(offs), 16):
             body.append("    " + ",".join(str(o) for o in offs[i:i + 16]) + ",")
         body.append("};")
-        lines.append(f"  {px}x{px}: {len(bits)} bytes of run-length bitmaps (+{2 * len(offs)} of offsets), "
+        lines.append(f"  {px}x{px}: {len(bits)} bytes of run-length bitmaps (+{4 * len(offs)} of offsets), "
                      f"{len(pal)}-colour palette")
     body.append("")
     for sym, v in sizes.items():

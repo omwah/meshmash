@@ -71,7 +71,7 @@ _SIZES_NATIVE = {"font_small": None, "font_medium": (12, 1), "font_large": (16, 
 EMOJI = {
     "none": None,
     "min": {"tiers": ["core"], "sizes": _SIZES_SCALED, "bytes": None},
-    "std": {"tiers": ["core", "common"], "sizes": _SIZES_NATIVE, "bytes": 240000},
+    "std": {"tiers": ["core", "common", "all"], "sizes": _SIZES_NATIVE, "bytes": None},
 }
 
 PROFILES = {

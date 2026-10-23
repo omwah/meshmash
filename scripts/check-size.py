@@ -24,10 +24,11 @@ BUDGETS = {
     "cardputer_adv": (1_025_000, 120_000),       # stock BLE companion is ~1.25 MB
     "cardputer_adv_usb": (765_000, 108_000),     # MeshCore 1.18 adds dynamic prefs/CLI (~7 KB over old cap)
     # T-Deck: a 6.25 MB app partition, so flash is no concern; internal RAM is
-    # (the node and the UI are made in PSRAM at boot). Its `std` profile (all 462
-    # emoji at three sizes, ~125 KB coded) still fits the original caps.
-    "tdeck": (1_200_000, 80_000),
-    "tdeck_usb": (900_000, 70_000),
+    # (the node and the UI are made in PSRAM at boot). Its `std` profile carries the
+    # whole Noto emoji set (5,644 sequences, 4,003 images, three sizes: ~1.1 MB coded),
+    # so the caps rose by ~1.05 MB; the app partition is 6.25 MB.
+    "tdeck": (2_250_000, 80_000),
+    "tdeck_usb": (2_000_000, 70_000),
 }
 
 

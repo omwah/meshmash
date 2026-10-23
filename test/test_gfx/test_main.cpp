@@ -417,7 +417,7 @@ void test_emoji_decode_run_length_streams() {
   // glyph 4x2 [5 5 5 5 / 5 5 5 5] as one run of eight crossing the row end
   // (two runs of at most 16: here 8 = (8,5)).
   static const uint8_t rle[] = {0x21, 0x02, 0x10, 0x13,   0x75};
-  static const uint16_t offs[] = {0, 4, 5};
+  static const uint32_t offs[] = {0, 4, 5};
   static const uint16_t pal[16] = {};
   static const mc_emoji_t e = {4, 2, 1, pal, rle, offs, nullptr};
   uint8_t px[8];

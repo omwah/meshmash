@@ -41,7 +41,9 @@ COMMON = """
 ©️ ®️ ™️ ‼️ ⁉️ ➰ ♻️ ☮️ ☯️ ♾️ ⚛️ ☢️ ☣️ ⚜️ 🔱 🆘 🆗 🆒 🆕 🆓
 """
 
-TIERS = {"core": CORE, "common": COMMON}
+# "all" is every emoji sequence the font has, after the tiers named before it
+# (gen_emoji.py fills it in from the font itself).
+TIERS = {"core": CORE, "common": COMMON, "all": ""}
 
 
 def tokens(tier_names):

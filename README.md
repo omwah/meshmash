@@ -15,7 +15,7 @@ hardware, so other devices can be added as new board directories.
   fonts (about 15 KB of flash). Only rows that changed are sent to the panel.
   Nothing on the UI side uses the heap.
 - **Unicode and emoji.** Received text beyond Latin, Cyrillic and Greek names
-  falls back to Noto Sans Mono, and common emoji are drawn in colour from Noto
+  falls back to Noto Sans Mono, and emoji are drawn in colour from Noto
   Color Emoji. What a build carries is chosen at build time: see
   [docs/unicode.md](docs/unicode.md).
 - **Colour themes.** Every colour is a *role* (header, selection, unread,

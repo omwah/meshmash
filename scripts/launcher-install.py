@@ -4,22 +4,23 @@
 # (licenses/Apache-2.0.txt).
 #
 # Changes for MeshMash: installs this project's packaged app image
-# (the newest in dist/ for the variant, BLE or --usb build) under the name
+# (built and packaged for just the variant, BLE or --usb build) under the name
 # meshmash; no SD runtime upload; a reboot that drops the connection
 # counts as done.
 """
 Install a MeshMash build on a Cardputer or T-Deck running bmorcelli's
 Launcher, over Launcher's web interface (WebUI), the way its own page does.
 
-    pixi run launcher-install IP [--variant V] [--usb] [--replace] [--boot]
-    pixi run launcher-install IP [--variant V] [--usb] --upload [FOLDER]
-    python -I scripts/launcher-install.py IP [BIN] [--name NAME] ...
+    pixi run launcher-install IP --variant V [--usb] [--replace] [--boot]
+    pixi run launcher-install IP --variant V [--usb] --upload [FOLDER]
+    python -I scripts/launcher-install.py IP --variant V [BIN] [--name NAME] ...
 
 IP     the device's address, as Launcher's WebUI screen shows it
-BIN    the image (default: the newest dist/<ver>/...-cardputer_adv.bin, or
-       ...-tdeck.bin, that `pixi run package` made; with --upload the merged
-       ...-full.bin)
---variant  the board: cardputer (default) or tdeck
+--variant  the board, required: cardputer or tdeck. Only that board's build
+       (BLE, or USB-only with --usb) is compiled and packaged, then installed;
+       a device takes one build, so there is no building them all.
+BIN    install this image instead of building one (the app .bin, or with
+       --upload the merged ...-full.bin); nothing is compiled
 --usb  the USB-only build instead (installed as meshmash-usb)
 --name the app's name in Launcher's menu (default: meshmash)
 --replace  first delete any installed app of that name (or the old name,
@@ -53,6 +54,7 @@ import http.cookiejar
 import json
 import os
 import struct
+import subprocess
 import sys
 import time
 import urllib.error
@@ -272,11 +274,20 @@ def newest_image(env, full=False):
     return imgs[-1]
 
 
+def build_and_package(env):
+    """Compile only `env` and write its images to dist/ (what `pixi run build` and
+    `package` do, for every env)."""
+    for cmd in (["pio", "run", "-e", env], [sys.executable, "-I", str(ROOT / "scripts" / "package.py"), env]):
+        say("running " + " ".join(Path(c).name if c == sys.executable else c for c in cmd))
+        if subprocess.run(cmd, cwd=ROOT).returncode:
+            die(f"{' '.join(cmd[:3])} failed")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.strip().split("\n\n")[0])
     ap.add_argument("ip")
     ap.add_argument("bin", nargs="?", type=Path)
-    ap.add_argument("--variant", choices=VARIANT_ENVS, default="cardputer")
+    ap.add_argument("--variant", choices=VARIANT_ENVS, required=True)
     ap.add_argument("--usb", action="store_true")
     ap.add_argument("--name")
     ap.add_argument("--replace", action="store_true")
@@ -288,6 +299,8 @@ def main():
 
     env = VARIANT_ENVS[a.variant] + ("_usb" if a.usb else "")
     name = a.name or ("meshmash-usb" if a.usb else "meshmash")
+    if not a.bin:
+        build_and_package(env)
     path = a.bin or newest_image(env, full=a.upload is not None)
     if not path.is_file():
         die(f"{path}: no such file")

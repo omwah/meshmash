@@ -33,7 +33,7 @@ shots    = { cmd = "python -I scripts/screenshots.py", depends-on = ["sim"] }
 build    = { cmd = "pio run -e cardputer_adv -e cardputer_adv_usb -e tdeck -e tdeck_usb", depends-on = ["deps"] }
 size     = { cmd = "python -I scripts/check-size.py", depends-on = ["build"] }
 package  = { cmd = "python -I scripts/package.py", depends-on = ["build"] }
-launcher-install = { cmd = "python -I scripts/launcher-install.py", depends-on = ["package"], description = "Build, package and install over Launcher's WebUI: pixi run launcher-install IP [--variant tdeck] [--usb] [--replace] [--boot] [--upload [FOLDER]]" }
+launcher-install = { cmd = "python -I scripts/launcher-install.py", description = "Build only the chosen board, package and install it over Launcher's WebUI: pixi run launcher-install IP --variant cardputer|tdeck [--usb] [--replace] [--boot] [--upload [FOLDER]]" }
 pii      = "scripts/pii-check.sh --all"
 licenses = "python -I scripts/check-licenses.py"
 ci       = "scripts/ci-local.sh"

@@ -213,7 +213,7 @@ pixi run ci                  # everything, including size budgets
 ```
 
 Flash with `pio run -e cardputer_adv -t upload` (or `-e tdeck`), or install
-over bmorcelli's Launcher with `pixi run launcher-install IP --replace [--variant tdeck]`. `pixi run package` writes
+over bmorcelli's Launcher with `pixi run launcher-install IP --variant cardputer|tdeck --replace`, which builds only that board. `pixi run package` writes
 release images for esptool, web flashers, M5Burner and M5Launcher to `dist/`.
 See `docs/FLASHING.md` for how to install them, and `docs/DEVICE-TESTING.md`
 for the first-flash checklist.

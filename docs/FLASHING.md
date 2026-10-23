@@ -71,12 +71,13 @@ From the SD card:
 
 Over WiFi, from a source checkout: start Launcher's WebUI on the device, then
 ```sh
-pixi run launcher-install <IP> --replace --boot
+pixi run launcher-install <IP> --variant cardputer --replace --boot
 ```
-This builds, packages and installs the newest BLE image. `--replace` deletes an
-earlier `meshmash` in Launcher's menu first; without it a second copy is
-added. `--variant tdeck` installs the T-Deck build, and `--usb` the USB-only
-build as `meshmash-usb`. `--upload [FOLDER]` only copies the `-full`
+`--variant` (`cardputer` or `tdeck`) is required: a device takes one build, so
+only that board's BLE build is compiled and packaged, then installed (`--usb`
+makes it the USB-only build, installed as `meshmash-usb`). Give an image file
+instead to install it without building. `--replace` deletes an earlier
+`meshmash` in Launcher's menu first; without it a second copy is added. `--upload [FOLDER]` only copies the `-full`
 image to the SD card in the device (to `/` by default), to install from
 Launcher's SD browser later. The WebUI login is Launcher's default unless
 `LAUNCHER_USER` and `LAUNCHER_PASS` are set.

@@ -343,6 +343,8 @@ void test_emoji_match_sequences() {
   TEST_ASSERT_EQUAL(8, match("\xf0\x9f\x91\x8d\xf0\x9f\x8f\xbd"));          // 👍🏽, a tone
   TEST_ASSERT_EQUAL(8, match("\xf0\x9f\x87\xba\xf0\x9f\x87\xb8"));          // 🇺🇸
   TEST_ASSERT_EQUAL(4 + 3 + 4 + 3 + 4, match("\xf0\x9f\x91\xa8\xe2\x80\x8d\xf0\x9f\x91\xa9\xe2\x80\x8d\xf0\x9f\x91\xa7"));   // 👨‍👩‍👧
+  TEST_ASSERT_EQUAL(4, match("\xf0\x9f\xaa\xb6"));                          // 🪶 feather
+  TEST_ASSERT_EQUAL(4, match("\xf0\x9f\xa7\xbf"));                          // 🧿 nazar amulet
   TEST_ASSERT_EQUAL(0, match("a"));
   TEST_ASSERT_EQUAL(0, match("\xef\xb8\x8f"));                              // a selector alone
   TEST_ASSERT_EQUAL(0, match(""));

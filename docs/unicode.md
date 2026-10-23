@@ -124,7 +124,7 @@ transparent. The palette is chosen by k-means weighted so greens and blues are
 not lost to the yellows that fill the faces. `flush` decodes a glyph once per
 band of up to 8 rows, down to the last row the band needs.
 
-The emoji a build carries are `scripts/emoji_set.py`: `core` (103: everyday
+The emoji a build carries are `scripts/emoji_set.py`: `core` (105: everyday
 reactions, signs, and what a mesh radio user talks about; the Cardputer) and
 `common` (359 more, in order of use: faces, gestures, objects, weather,
 vehicles, food, animals, a score of flags, joined sequences, skin tones for

@@ -4,6 +4,7 @@ rx dm 0 MeshCore connected 📡 Signal strength 📶 Battery low 🔋⚠️
 rx dm 0 😀😂🤣😊😎 👍👎👋 ❤️💙💚 ✅❌ 🏠🚗☕
 rx dm 0 👍🏽👋🏿 🇺🇸🇨🇦🇯🇵 👨‍👩‍👧 MeshCore 🛰️ connected! 🇩🇪 🥹
 rx dm 0 Location received 📍🗺️ then 1️⃣2️⃣ and a long line so it wraps: 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥 done
+rx dm 0 A feather 🪶 and an evil eye 🧿 (U+1FAB6, U+1F9FF)
 wait 200
 key enter
 shot emoji-chat
@@ -13,4 +14,6 @@ key down 6
 shot emoji-chat-3
 key down 6
 shot emoji-chat-4
+key down 6
+shot emoji-chat-5
 key esc

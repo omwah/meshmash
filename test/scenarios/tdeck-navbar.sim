@@ -13,7 +13,7 @@ shot navbar-menu
 # The menu remembers where it was, sub-screens included: Menu, into Diagnostics, off to
 # another tab and back with the Menu button.
 tap 300 225
-key down 6
+key down 5
 key enter
 shot navbar-menu-diag
 tap 40 225

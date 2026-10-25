@@ -14,7 +14,7 @@ expect contacts 1
 expect channels 2
 # Menu > Backup & restore > Back up now (below Remote node and Settings)
 key menu
-key down 11
+key down 10
 key enter
 key down 3
 key enter

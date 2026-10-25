@@ -6,27 +6,20 @@ key bksp
 shot menu-bksp-home
 key menu
 key down 5
-shot menu-radio-sel
-key enter
-shot radio
-key right
-shot radio-preset-next
-hold esc 900
-key menu
-key down 6
+shot menu-diag-sel
 key enter
 shot diag-radio
 key right
 shot diag-system
 hold esc 900
 key menu
-key down 7
+key down 6
 key enter
 shot packet-log
 hold esc 900
 gps on
 key menu
-key down 8
+key down 7
 key enter
 shot gps
 hold esc 900

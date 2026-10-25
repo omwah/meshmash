@@ -17,7 +17,7 @@ expect threads 1
 # Backup & restore: Include messages on, then Back up now
 key menu
 key up 20   # the menu keeps its cursor: back to the first row
-key down 11
+key down 10
 key enter
 key down 2
 key enter
@@ -30,7 +30,7 @@ wait 6000
 expect threads 0
 key menu
 key up 20   # the menu keeps its cursor: back to the first row
-key down 11
+key down 10
 key enter
 key down 4
 key enter

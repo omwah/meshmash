@@ -1,10 +1,19 @@
 # Settings, theme switching and backup.
 key menu
-key down 9
+key down 8
 key enter
 shot settings
-# past Mesh node (Remote node is disabled in local mode)
+# Radio has its own heading below the identity rows (Remote node is disabled in local mode).
 key down 2
+shot settings-radio-row
+key enter
+shot radio
+key right
+shot radio-preset-next
+key left
+key esc
+shot settings-after-radio
+key down
 shot settings-timezone
 key right 4
 shot settings-timezone-eastern
@@ -36,7 +45,7 @@ key down 5
 shot settings-telemetry
 hold esc 900
 key menu
-key down 10
+key down 9
 key enter
 shot backup
 key down

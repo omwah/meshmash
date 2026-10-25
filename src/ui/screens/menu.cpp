@@ -17,7 +17,7 @@ const char* yesNo(bool b) { return b ? "on" : "off"; }
 // ------------------------------------------------------------- main menu
 
 enum MItem { M_HDR_MESH, M_JOIN, M_HEARD, M_DISCOVER, M_ADV0, M_ADVF,
-             M_HDR_DEV, M_RADIO, M_DIAG, M_LOG, M_GPS,
+             M_HDR_DEV, M_DIAG, M_LOG, M_GPS,
              M_HDR_SYS, M_REMOTE, M_SETTINGS, M_BACKUP, M_ABOUT, M_REBOOT, M_N };
 
 bool remoteMode(App& a) { return a.m().mode() == model::Mode::Remote; }
@@ -39,13 +39,7 @@ protected:
       case M_DISCOVER: it.label = "Discover repeaters"; break;
       case M_ADV0: it.label = "Advertise (zero hop)"; break;
       case M_ADVF: it.label = "Advertise (flood)"; break;
-      case M_HDR_DEV: it.label = "RADIO & DIAGNOSTICS"; it.header = true; break;
-      case M_RADIO: {
-        it.label = "Radio";
-        model::Radio r = a.m().radio();
-        snprintf(it.value, sizeof it.value, "%.3f SF%u", r.freqMHz, r.sf);
-        break;
-      }
+      case M_HDR_DEV: it.label = "DIAGNOSTICS"; it.header = true; break;
       case M_DIAG: it.label = "Diagnostics"; break;
       case M_LOG: it.label = "Packet log"; snprintf(it.value, sizeof it.value, "%d", a.m().rxLogCount()); it.valueCol = C_DIM; break;
       case M_GPS: {
@@ -86,7 +80,6 @@ protected:
         break;
       case M_ADV0: a.m().advert(false); a.toast("Advert sent (zero hop)", C_OK); break;
       case M_ADVF: a.m().advert(true); a.toast("Advert sent (flood)", C_OK); break;
-      case M_RADIO: openRadio(a); break;
       case M_DIAG: openDiag(a); break;
       case M_LOG: openPacketLog(a); break;
       case M_GPS: openGps(a); break;
@@ -117,7 +110,7 @@ MainMenu s_menu;
 
 // ------------------------------------------------------------- settings
 
-enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_TIME, S_TZ, S_CLOCK, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
+enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_RADIO, S_RADIO, S_HDR_TIME, S_TZ, S_CLOCK, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
              S_HDR_IN, S_VIM, S_BALL, S_LOCK, S_SCROLL, S_LOCKOUT, S_SOUND, S_NOTIFY, S_LEDLEVEL,
              S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_BLE, S_PIN, S_PINMODE,
              S_HDR_GPS, S_GPS, S_GPSADV, S_GPSTIME,
@@ -176,6 +169,13 @@ protected:
         snprintf(it.value, sizeof it.value, "%s", p.deviceMode == model::Mode::Remote ? "remote (BLE)" : "this device");
         break;
       case S_REMOTE: it.label = "Remote node"; it.enabled = remoteMode(a); break;
+      case S_HDR_RADIO: it.label = "RADIO"; it.header = true; break;
+      case S_RADIO: {
+        it.label = "Radio";
+        model::Radio r = a.m().radio();
+        snprintf(it.value, sizeof it.value, "%.3f SF%u", r.freqMHz, r.sf);
+        break;
+      }
       case S_HDR_TIME: it.label = "TIME"; it.header = true; break;
       case S_CLOCK: it.label = "Clock"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", p.clock12 ? "12-hour" : "24-hour"); break;
       case S_TZ: it.label = "Time zone"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", kZones[p.timeZone % kZoneCount].name); break;
@@ -310,6 +310,7 @@ protected:
 #if MC_UI_REMOTE
       case S_REMOTE: openRemote(a); break;
 #endif
+      case S_RADIO: openRadio(a); break;
       case S_NOTIFY:
       case S_LEDLEVEL: a.flashLed(); break;   // a preview of the colours
       default:

@@ -4,7 +4,7 @@ node Hana 7
 as Hana advert
 wait 15000
 key menu
-key down 10
+key down 9
 key enter
 shot auto-backup-status
 hold esc 900

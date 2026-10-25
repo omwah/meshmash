@@ -13,7 +13,7 @@ expect contacts 1
 expect channels 2
 # Menu > Backup & restore > Back up now
 key menu
-key down 10
+key down 9
 key enter
 key down 3
 key enter

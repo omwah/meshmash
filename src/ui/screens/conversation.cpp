@@ -7,6 +7,7 @@
 #include "ui/icons.h"
 #include "ui/thread.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 
@@ -107,8 +108,39 @@ void drawMessage(App& a, Canvas& c, const model::Message& m, bool chan, bool sel
 }
 
 // The thread screen, below ConversationScreen.
-void showThread(App& a, model::ThreadId id, const int* idx, int n);
-void openInfo(App& a, const model::Message& m, bool chan);
+void showThread(App& a, model::ThreadId id, const model::Message* msgs, const int* idx, int n, uint32_t selSeq);
+void openInfo(App& a, model::ThreadId id, const model::Message& m, bool chan, bool fromThread);
+void startThread(App& a, model::ThreadId id, uint32_t seq);
+
+// Drafts of the chats left with one in progress (a few, on the heap): you can look at other things
+// and come back to the half-written message. The open chat keeps its own in the screen.
+struct DraftSlot { model::ThreadId id; char* text; };
+DraftSlot s_drafts[6];
+
+void dropDraft(const model::ThreadId& id) {
+  for (DraftSlot& d : s_drafts)
+    if (d.text && d.id == id) { free(d.text); d.text = nullptr; }
+}
+
+void keepDraft(const model::ThreadId& id, const char* text) {
+  dropDraft(id);
+  if (!text[0]) return;
+  int at = -1;
+  for (int i = 0; i < 6 && at < 0; i++)
+    if (!s_drafts[i].text) at = i;
+  if (at < 0) {   // all taken: the first one goes
+    free(s_drafts[0].text);
+    memmove(&s_drafts[0], &s_drafts[1], sizeof(DraftSlot) * 5);
+    s_drafts[5].text = nullptr;
+    at = 5;
+  }
+  char* t = (char*)malloc(strlen(text) + 1);
+  if (!t) return;
+  memcpy(t, text, strlen(text) + 1);
+  s_drafts[at] = {id, t};
+}
+
+struct HistoryBuf { model::Message* m; int n; };
 
 class ConversationScreen : public Screen {
 public:
@@ -171,6 +203,8 @@ public:
   void draw(App& a, Canvas& c, const Rect& r) override {
     Rect mr = r;
     if (_composing) mr.h -= composeH(a);
+    const int stripH = !_composing && _draft[0] ? a.fSmall()->height + 4 : 0;
+    mr.h -= stripH;
     int n = a.m().messageCount(id);
     const mc_font_t* f = a.fBody();
     int textW = mr.w - 14;
@@ -249,6 +283,21 @@ public:
     drawScrollbar(c, mr, total, total - mr.h - _scroll, mr.h);
 
     if (_composing) drawCompose(a, c, r);
+    if (stripH) drawDraftStrip(a, c, r, stripH);
+  }
+
+  // What is waiting to be sent, under the messages: "Draft" in the accent, then its start.
+  void drawDraftStrip(App& a, Canvas& c, const Rect& r, int h) {
+    const mc_font_t* sf = a.fSmall();
+    int y = r.y + r.h - h;
+    c.fillRect(r.x, y, r.w, h, C_ZEBRA);
+    c.hline(r.x, y, r.w, C_ACCENT);
+    int x = c.text(r.x + 4, y + 2, "Draft", sf, C_ACCENT) + 6;
+    char one[model::TEXT_LEN];
+    snprintf(one, sizeof one, "%s", _draft);
+    for (char* p = one; *p; p++)
+      if (*p == '\n') *p = ' ';
+    c.text(x, y + 2, one, sf, C_TEXT, -1, r.w - (x - r.x) - 4);
   }
 
   void onKey(App& a, const Key& k) override {
@@ -353,7 +402,7 @@ public:
   const Hint* hints(App& a) override {
     static const Hint view[] = {{"ent", "write"}, {"^v", "scroll"}, {"tab", "info"}, {"esc", "back"}, {nullptr, nullptr}};
     static const Hint vim[] = {{"i", "write"}, {"^v", "scroll"}, {"tab", "info"}, {"q", "back"}, {nullptr, nullptr}};
-    static const Hint draft[] = {{"i", "write"}, {"ZZ", "send"}, {"ZQ", "discard"}, {"q", "back"}, {nullptr, nullptr}};
+    static const Hint draft[] = {{"i", "edit draft"}, {"ZZ", "send"}, {"ZQ", "delete draft"}, {"q", "back"}, {nullptr, nullptr}};
     static const Hint pick[] = {{"^v", "move"}, {"ent", "details"}, {"r", "reply"}, {"t", "thread"}, {"esc", "done"}, {nullptr, nullptr}};
     static const Hint pickDm[] = {{"^v", "move"}, {"ent", "details"}, {"esc", "done"}, {nullptr, nullptr}};
     if (_sel && !_composing) return _selAuthor ? pick : pickDm;
@@ -393,7 +442,33 @@ public:
     return got;
   }
 
+  // A checksum of the draft, to tell whether anything was typed after a reply's prefilled name.
+  uint32_t draftHash() const {
+    uint32_t h = 5381;
+    for (const char* p = _draft; *p; p++) h = h * 33 + (uint8_t)*p;
+    return h | 1;
+  }
+  uint32_t _seed = 0;
+
+  // Leaving this chat for another: its draft waits in the pool. Coming back: it returns.
+  void stashDraft() { if (_draft[0]) keepDraft(id, _draft); }
+  void restoreDraft(App& a) {
+    for (DraftSlot& d : s_drafts)
+      if (d.text && d.id == id) {
+        snprintf(_draft, sizeof _draft, "%s", d.text);
+        dropDraft(id);
+        _ed.attach(_draft, maxLen(a) + 1);
+        return;
+      }
+  }
+  bool draftText(char* out, int n) const {
+    if (!_draft[0]) return false;
+    snprintf(out, n, "%s", _draft);
+    return true;
+  }
+
   void reset() {
+    _seed = 0;
     _divSeq = 0;
     _toDivider = false;
     _scroll = 0;
@@ -408,7 +483,15 @@ public:
   bool _loggingIn = false;
 
   // Jump to a message of this conversation and pick it (from the thread screen).
-  void focus(uint32_t seq) {
+  void focus(App& a, uint32_t seq) {
+    // It may be older than the window: slide back until it is in.
+    for (int page = 0; page < 40; page++) {
+      bool in = false;
+      model::Message m;
+      for (int i = 0, n = a.m().messageCount(id); i < n && !in; i++) in = a.m().message(id, i, m) && m.seq == seq;
+      if (in || !a.m().loadOlder(id)) break;
+    }
+    _scroll = 0;
     _sel = true;
     _selSeq = seq;
     _ensureSel = true;
@@ -481,36 +564,13 @@ private:
     if (len + add > maxLen(a)) { a.toast("Draft too long for a reply", C_WARN); return; }
     memcpy(_draft + len, mention, add + 1);
     _ed.attach(_draft, maxLen(a) + 1);
+    _seed = draftHash();   // stopping with nothing typed beyond the name leaves no draft behind
   }
 
   // Everything known about a message, on a scrolling page.
-  void showDetails(App& a, const model::Message& m) { openInfo(a, m, id.kind == model::ThreadKind::Channel); }
+  void showDetails(App& a, const model::Message& m) { openInfo(a, id, m, id.kind == model::ThreadKind::Channel, false); }
 
-  struct Fetch { App* a; model::ThreadId id; };
-
-  static bool fetchAt(void* ctx, int i, model::Message& m) {
-    Fetch* f = (Fetch*)ctx;
-    return f->a->m().message(f->id, i, m);
-  }
-
-  // The thread the message answers: follow the @mentions back (see ui/thread.h).
-  void openThreadFor(App& a, uint32_t seq) {
-    // Older messages may hold the start of it: bring a couple of pages in.
-    for (int page = 0; page < 2; page++) {
-      model::Message first;
-      if (!a.m().message(id, 0, first) || !a.m().loadOlder(id)) break;
-    }
-    Fetch f{&a, id};
-    int n = a.m().messageCount(id), at = -1;
-    for (int i = 0; i < n && at < 0; i++) {
-      model::Message m;
-      if (a.m().message(id, i, m) && m.seq == seq) at = i;
-    }
-    int idx[THREAD_MAX];
-    int cnt = at < 0 ? 0 : buildThread(fetchAt, &f, n, at, a.m().prefs().nodeName, idx, THREAD_MAX);
-    if (cnt < 2) { a.toast("Mentions no one earlier", C_DIM); return; }
-    showThread(a, id, idx, cnt);
-  }
+  void openThreadFor(App& a, uint32_t seq) { startThread(a, id, seq); }
 
   // Tab in a message: finish the name after an @ (as @[Name] ), from those who wrote in this
   // chat and from the contacts; Tab again for the next one.
@@ -568,7 +628,16 @@ private:
   void composeKey(App& a, const Key& k) {
     if (k.code == K_TAB) { completeName(a); return; }
     _tabFrom = -1;   // any other key ends a round of completions
-    if (k.code == K_ESC) { _composing = false; return; }
+    if (k.code == K_ESC) {
+      _composing = false;
+      if (_seed && draftHash() == _seed) {   // a reply started and not written: nothing to keep
+        _draft[0] = 0;
+        _ed.attach(_draft, maxLen(a) + 1);
+        a.toast("Reply cancelled", C_DIM);
+      }
+      _seed = 0;
+      return;
+    }
     if (k.code == K_ENTER) {
       if (!_draft[0]) { _composing = false; return; }
       if (a.m().send(id, _draft)) {
@@ -726,6 +795,11 @@ public:
   void onKey(App& a, const Key& k) override {
     switch (k.code) {
       case K_ESC: a.pop(); return;
+      case 't':
+        if (!k.isChar() || !m.sender[0]) return;
+        if (fromThread) a.pop();   // the thread is right behind
+        else startThread(a, id, m.seq);
+        return;
       case K_UP: scroll -= 14; break;
       case K_DOWN: scroll += 14; break;
       case K_PGUP: case K_HALF_UP: scroll -= 80; break;
@@ -740,12 +814,14 @@ public:
   }
 
   const Hint* hints(App&) override {
-    static const Hint h[] = {{"^v", "scroll"}, {"esc", "back"}, {nullptr, nullptr}};
-    return h;
+    static const Hint h[] = {{"^v", "scroll"}, {"t", "thread"}, {"esc", "back"}, {nullptr, nullptr}};
+    static const Hint dm[] = {{"^v", "scroll"}, {"esc", "back"}, {nullptr, nullptr}};
+    return m.sender[0] ? h : dm;
   }
 
+  model::ThreadId id;
   model::Message m;
-  bool chan = false;
+  bool chan = false, fromThread = false;
   int scroll = 0, maxScroll = 0;
 
 private:
@@ -759,7 +835,9 @@ private:
 
 InfoScreen s_info;
 
-void openInfo(App& a, const model::Message& m, bool chan) {
+void openInfo(App& a, model::ThreadId id, const model::Message& m, bool chan, bool fromThread) {
+  s_info.id = id;
+  s_info.fromThread = fromThread;
   s_info.m = m;
   s_info.chan = chan;
   s_info.scroll = 0;
@@ -771,21 +849,22 @@ void openInfo(App& a, const model::Message& m, bool chan) {
 class ThreadScreen : public Screen {
 public:
   model::ThreadId id;
-  int idx[THREAD_MAX];   // the messages, as places in the conversation's window (it holds still meanwhile)
+  model::Message* msgs = nullptr;   // the thread, oldest first (on the heap while the screen is open)
   int n = 0, sel = 0, scroll = 0;
   bool chan = false, ensure = true;
 
   const char* title(App&) override { return "Thread"; }
 
+  void onLeave() { free(msgs); msgs = nullptr; n = 0; }
+
   void draw(App& a, Canvas& c, const Rect& mr) override {
+    if (!msgs) return;
     const mc_font_t* f = a.fBody();
     const int textW = mr.w - 14;
     int ys[THREAD_MAX], hs[THREAD_MAX], total = 0;
-    model::Message m;
     for (int i = 0; i < n; i++) {
       ys[i] = total;
-      if (!a.m().message(id, idx[i], m)) { hs[i] = 0; continue; }
-      hs[i] = messageH(a, m, f, textW);
+      hs[i] = messageH(a, msgs[i], f, textW);
       total += hs[i];
     }
     int maxScroll = total > mr.h ? total - mr.h : 0;
@@ -799,7 +878,7 @@ public:
     for (int i = 0; i < n; i++) {
       int top = mr.y + ys[i] - scroll;
       if (top >= mr.y + mr.h || top + hs[i] <= mr.y) continue;
-      if (a.m().message(id, idx[i], m)) drawMessage(a, c, m, chan, i == sel, mr, top, f, textW);
+      drawMessage(a, c, msgs[i], chan, i == sel, mr, top, f, textW);
       hitMessage(a, mr, top, hs[i], i);
     }
     drawScrollbar(c, mr, total, scroll, mr.h);
@@ -807,18 +886,20 @@ public:
 
   void onKey(App& a, const Key& k) override {
     switch (k.code) {
-      case K_ESC: a.pop(); return;
+      case K_ESC: onLeave(); a.pop(); return;
       case K_UP: if (sel > 0) { sel--; ensure = true; a.invalidate(); } return;
       case K_DOWN: if (sel + 1 < n) { sel++; ensure = true; a.invalidate(); } return;
       case K_HOME: sel = 0; ensure = true; a.invalidate(); return;
       case K_END: sel = n - 1; ensure = true; a.invalidate(); return;
-      case K_ENTER: goTo(a); return;
+      case K_ENTER: case K_TAB: if (n) openInfo(a, id, msgs[sel], chan, true); return;
+      case 'c': if (k.isChar()) goTo(a); return;
     }
   }
 
   void onTouch(App& a, const Gesture& g, const HitTarget* t) override {
     if ((g.type == Gesture::TAP || g.type == Gesture::LONG) && t && t->kind == HitTarget::ROW && t->arg < n) {
-      if (t->arg == sel || g.type == Gesture::LONG) { sel = t->arg; goTo(a); return; }
+      if (g.type == Gesture::LONG) { sel = t->arg; goTo(a); return; }
+      if (t->arg == sel) { openInfo(a, id, msgs[sel], chan, true); return; }
       sel = t->arg;
       a.invalidate();
       return;
@@ -832,33 +913,69 @@ public:
   }
 
   const Hint* hints(App&) override {
-    static const Hint h[] = {{"^v", "move"}, {"ent", "in chat"}, {"esc", "back"}, {nullptr, nullptr}};
+    static const Hint h[] = {{"^v", "move"}, {"ent", "details"}, {"c", "in chat"}, {"esc", "back"}, {nullptr, nullptr}};
     return h;
   }
 
 private:
   void goTo(App& a) {
     if (!n) return;
-    model::Message m;
-    if (!a.m().message(id, idx[sel], m)) return;
-    uint32_t seq = m.seq;
-    a.pop();
-    s_conv.focus(seq);
+    uint32_t seq = msgs[sel].seq;
+    onLeave();
+    while (a.top() != &s_conv && a.depth() > 1) a.pop();   // the thread, and details it came from
+    s_conv.focus(a, seq);
     a.invalidate();
   }
 };
 
 ThreadScreen s_thread;
 
-void showThread(App& a, model::ThreadId id, const int* idx, int n) {
+void showThread(App& a, model::ThreadId id, const model::Message* msgs, const int* idx, int n, uint32_t selSeq) {
+  if (n > THREAD_MAX) n = THREAD_MAX;
+  s_thread.onLeave();
+  s_thread.msgs = (model::Message*)malloc(sizeof(model::Message) * n);
+  if (!s_thread.msgs) { a.toast("Not enough memory", C_WARN); return; }
+  for (int i = 0; i < n; i++) s_thread.msgs[i] = msgs[idx[i]];
   s_thread.id = id;
-  s_thread.n = n < THREAD_MAX ? n : THREAD_MAX;
-  memcpy(s_thread.idx, idx, s_thread.n * sizeof idx[0]);
-  s_thread.sel = s_thread.n - 1;   // the message the thread was asked for
+  s_thread.n = n;
+  s_thread.sel = n - 1;
+  for (int i = 0; i < n; i++)   // the message the thread was asked for
+    if (msgs[idx[i]].seq == selSeq) s_thread.sel = i;
   s_thread.scroll = 0;
   s_thread.chan = id.kind == model::ThreadKind::Channel;
   s_thread.ensure = true;
   a.push(&s_thread);
+}
+
+static bool historyAt(void* ctx, int i, model::Message& m) {
+  const HistoryBuf* h = (const HistoryBuf*)ctx;
+  if (i < 0 || i >= h->n) return false;
+  m = h->m[i];
+  return true;
+}
+
+// The thread a message belongs to: follow the @mentions back (see ui/thread.h), through the
+// whole history. The conversation behind stays where it is; only the thread screen moves.
+void startThread(App& a, model::ThreadId id, uint32_t seq) {
+  enum { HISTORY = 96 };
+  HistoryBuf h;
+  h.m = (model::Message*)malloc(sizeof(model::Message) * HISTORY);
+  if (!h.m) { a.toast("Not enough memory", C_WARN); return; }
+  // The newest messages, so the replies after the picked one are there; a message further back
+  // than that gets the history up to it.
+  int at = -1;
+  h.n = a.m().history(id, 0xFFFFFFFFu, h.m, HISTORY);
+  for (int i = 0; i < h.n && at < 0; i++)
+    if (h.m[i].seq == seq) at = i;
+  if (at < 0) {
+    h.n = a.m().history(id, seq, h.m, HISTORY);
+    if (h.n > 0 && h.m[h.n - 1].seq == seq) at = h.n - 1;
+  }
+  int idx[THREAD_MAX];
+  int cnt = at < 0 ? 0 : buildThread(historyAt, &h, h.n, at, a.m().prefs().nodeName, idx, THREAD_MAX);
+  if (cnt > 0) showThread(a, id, h.m, idx, cnt, seq);
+  else a.toast("Message not found", C_DIM);
+  free(h.m);
 }
 
 // Conversations opened, oldest first, for Ctrl-o.
@@ -883,12 +1000,21 @@ void switchTo(App& a, model::ThreadId t) {
 }  // namespace
 
 void openThread(App& a, model::ThreadId t) {
-  if (!(s_conv.id == t)) s_conv.reset();
+  if (!(s_conv.id == t)) { s_conv.stashDraft(); s_conv.reset(); }
   s_conv._loginTriedReset();
   s_conv.id = t;
+  s_conv.restoreDraft(a);
   s_conv.markNew(a);
   noteJump(t);
   a.push(&s_conv);
+}
+
+// The draft waiting in a chat, for the chats list: the open chat's, or one set aside.
+bool draftPreview(model::ThreadId t, char* out, int n) {
+  if (s_conv.id == t && s_conv.draftText(out, n)) return true;
+  for (const DraftSlot& d : s_drafts)
+    if (d.text && d.id == t) { snprintf(out, n, "%s", d.text); return true; }
+  return false;
 }
 
 void jumpBack(App& a) {

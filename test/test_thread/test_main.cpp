@@ -115,7 +115,7 @@ void test_unknown_person_and_loops_end() {
   c.add("Zed", "@[Bob] what");             // 1
   c.add("Bob", "@[Zed] nothing");          // 2
   int t[16];
-  TEST_ASSERT_EQUAL(1, thread(c, 0, t));   // nobody called Zed before it
+  TEST_ASSERT_EQUAL(3, thread(c, 0, t));   // nobody before it, but the replies that mention Bob follow
   int n = thread(c, 2, t);                 // 2 -> 1 -> 0, and no further
   TEST_ASSERT_EQUAL(3, n);
   TEST_ASSERT_EQUAL(0, t[0]);
@@ -130,6 +130,87 @@ void test_the_limit_is_kept() {
   for (int i = 1; i < n; i++) TEST_ASSERT_TRUE(t[i - 1] < t[i]);
 }
 
+void test_padded_and_at_names_match() {
+  Chat c;
+  c.add("Alice Mobile ", "hello");         // 0  senders are shown padded
+  c.add("@Bobby", "hi there");             // 1  and some start with an @
+  c.add("Carol", "@[Alice Mobile] ok");    // 2
+  c.add("Dave", "@[@Bobby] you too");      // 3
+  c.add("Erin", "@[Bobby] again");         // 4
+  int t[16];
+  TEST_ASSERT_EQUAL(2, thread(c, 2, t));
+  TEST_ASSERT_EQUAL(0, t[0]);
+  TEST_ASSERT_EQUAL(3, thread(c, 3, t));   // Bobby's message, and both that mention him
+  TEST_ASSERT_EQUAL(1, t[0]);
+  TEST_ASSERT_EQUAL(3, thread(c, 4, t));
+  TEST_ASSERT_EQUAL(1, t[0]);
+}
+
+void test_several_mentions_in_one_message_are_all_followed() {
+  Chat c;
+  c.add("Alice", "lunch?");                  // 0
+  c.add("Bob", "noise");                     // 1
+  c.add("Carol", "what time?");              // 2
+  c.add("Dave", "@[Alice] @[Carol] noon");   // 3
+  int t[16];
+  TEST_ASSERT_EQUAL(3, thread(c, 3, t));
+  TEST_ASSERT_EQUAL(0, t[0]);
+  TEST_ASSERT_EQUAL(2, t[1]);
+  TEST_ASSERT_EQUAL(3, t[2]);
+}
+
+void test_mentions_in_a_row_are_taken_together() {
+  Chat c;
+  c.add("Alice", "anyone?");                 // 0
+  c.add("Bob", "here");                      // 1
+  c.add("Carol", "@[Alice] hi");             // 2
+  c.add("Carol", "@[Bob] and you");          // 3
+  c.add("Carol", "@[Alice] again");          // 4
+  int t[16];
+  int n = thread(c, 4, t);
+  TEST_ASSERT_EQUAL(5, n);
+  for (int i = 0; i < 5; i++) TEST_ASSERT_EQUAL(i, t[i]);
+  // A message in the run that mentions no one ends it.
+  Chat d;
+  d.add("Alice", "anyone?");                 // 0
+  d.add("Carol", "@[Alice] hi");             // 1
+  d.add("Carol", "just talking");            // 2
+  d.add("Carol", "@[Alice] again");          // 3
+  TEST_ASSERT_EQUAL(2, thread(d, 3, t));
+  TEST_ASSERT_EQUAL(0, t[0]);
+}
+
+void test_mentions_in_a_row_by_different_people_belong_together() {
+  Chat c;
+  c.add("Egg", "I am an egg");                // 0
+  c.add("Alice", "@[egg] had you for breakfast");   // 1
+  c.add("Bob", "@[Egg] I like you over easy");      // 2
+  c.add("Carol", "@[egg] watch out");               // 3
+  c.add("Dave", "something else");                  // 4
+  int t[16];
+  // From any of the three: all of them and the egg.
+  for (int pick = 1; pick <= 3; pick++) {
+    TEST_ASSERT_EQUAL(4, thread(c, pick, t));
+    for (int i = 0; i < 4; i++) TEST_ASSERT_EQUAL(i, t[i]);
+  }
+  // From the egg itself: the replies after it that mention it.
+  TEST_ASSERT_EQUAL(4, thread(c, 0, t));
+  TEST_ASSERT_EQUAL(3, t[3]);
+}
+
+void test_the_run_stops_at_a_message_about_someone_else() {
+  Chat c;
+  c.add("Egg", "hello");                     // 0
+  c.add("Alice", "@[Egg] hi");               // 1
+  c.add("Bob", "@[Zed] unrelated mention");  // 2
+  c.add("Carol", "@[Egg] hey");              // 3
+  int t[16];
+  TEST_ASSERT_EQUAL(2, thread(c, 1, t));     // 0 and 1: Bob's message ends the run
+  TEST_ASSERT_EQUAL(2, thread(c, 3, t));     // the egg and Carol; Bob's is in the way
+  TEST_ASSERT_EQUAL(0, t[0]);
+  TEST_ASSERT_EQUAL(3, t[1]);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_first_mention);
@@ -140,5 +221,10 @@ int main() {
   RUN_TEST(test_names_match_without_case_and_outgoing_is_me);
   RUN_TEST(test_unknown_person_and_loops_end);
   RUN_TEST(test_the_limit_is_kept);
+  RUN_TEST(test_padded_and_at_names_match);
+  RUN_TEST(test_several_mentions_in_one_message_are_all_followed);
+  RUN_TEST(test_mentions_in_a_row_are_taken_together);
+  RUN_TEST(test_mentions_in_a_row_by_different_people_belong_together);
+  RUN_TEST(test_the_run_stops_at_a_message_about_someone_else);
   return UNITY_END();
 }

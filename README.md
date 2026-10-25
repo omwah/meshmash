@@ -163,7 +163,7 @@ A command being typed (`2g`) shows at the right of the footer.
 - **Conversation:**
   - Each message shows its delivery state: sending, sent, delivered or failed, with retries and repeat counts.
   - Incoming messages show hops and SNR. Picking a message (Right, `l`, or a tap) and pressing Enter shows more: the hop count and each relay it passed, as its prefix and its name (when one repeater or room contact matches), the signal and the full time.
-  - **Threads:** `t` on a picked message follows its `@[Name]` mention back to the last thing that person wrote, with the messages they sent right before it, and so on up the chain. Enter in the thread jumps to that message in the whole conversation. `r` starts a reply to the sender of the picked message.
+  - **Threads:** `t` on a picked message (or in its details) always opens the thread view: every `@[Name]` in it leads back to the last thing that person wrote, with the messages they sent right before it, and so on up the chain; messages in a row that mention the same people are taken together, whoever wrote them, and so are the replies right after the picked message. The chat behind does not move. Enter in the thread shows a message's details (`t` there goes back to the thread); `c` jumps to the message in the whole conversation. `r` starts a reply to the sender of the picked message.
   - A "New" line marks where the messages that arrived since you last opened the chat begin, and the chat opens scrolled to it.
   - You can compose replies inline, in a word-wrapped box.
   - History: the newest 512 messages stay on flash. With an SD card, older

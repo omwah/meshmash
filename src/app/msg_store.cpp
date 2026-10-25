@@ -788,6 +788,20 @@ int MessageStore::history(const ThreadKey& k, uint32_t upTo, model::Message* out
   return w;
 }
 
+int MessageStore::around(const ThreadKey& k, uint32_t seq, int before, int after, model::Message* out, int max) {
+  if (max < 1 || before < 1) return 0;
+  if (before > max) before = max;
+  int n = history(k, seq, out, before);
+  if (n < 1 || out[n - 1].seq != seq) return n;   // the message is not there: no context after it either
+  uint32_t seqs[64];
+  if (after > 64) after = 64;
+  if (after > max - n) after = max - n;
+  int m = after > 0 ? findSeqs(k, seq, false, seqs, after) : 0;
+  for (int i = 0; i < m && n < max; i++)
+    if (loadSeq(k, seqs[i], out[n])) n++;
+  return n;
+}
+
 int MessageStore::older() {
   if (!_hasOpen || !_nCache) return 0;
   uint32_t seqs[PAGE];

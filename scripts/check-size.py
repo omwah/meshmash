@@ -22,9 +22,10 @@ BUDGETS = {
     # and 48 on-screen sprites ~1 KB of RAM. Flash caps rose by 25 KB for it;
     # see docs/unicode.md.
     # +2 KB (2026-10-25): the 12/24-hour clock, receive times and sender offsets, the version label.
-    "cardputer_adv": (1_027_000, 120_000),       # stock BLE companion is ~1.25 MB
+    # +3 KB (2026-10-25): the thread graph (scoring, components, weak links) is shared code.
+    "cardputer_adv": (1_030_000, 120_000),       # stock BLE companion is ~1.25 MB
     # +2 KB (2026-10-25): chat drafts, the message info and thread screens, history reads.
-    "cardputer_adv_usb": (767_000, 108_000),     # MeshCore 1.18 adds dynamic prefs/CLI (~7 KB over old cap)
+    "cardputer_adv_usb": (771_000, 109_000),     # MeshCore 1.18 adds dynamic prefs/CLI (~7 KB over old cap)
     # T-Deck: a 6.25 MB app partition, so flash is no concern; internal RAM is
     # (the node and the UI are made in PSRAM at boot). Its `std` profile carries the
     # whole Noto emoji set (5,644 sequences, 4,003 images, three sizes: ~1.1 MB coded),

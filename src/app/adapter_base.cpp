@@ -346,6 +346,12 @@ int AdapterBase::history(model::ThreadId t, uint32_t upTo, model::Message* out, 
   return _msgs.history(k, upTo, out, max);
 }
 
+int AdapterBase::historyAround(model::ThreadId t, uint32_t seq, int before, int after, model::Message* out, int max) {
+  ThreadKey k;
+  if (!threadKeyFor(t, k)) return 0;
+  return _msgs.around(k, seq, before, after, out, max);
+}
+
 bool AdapterBase::atNewest(model::ThreadId t) const {
   messageCount(t);
   return _msgs.atNewest();

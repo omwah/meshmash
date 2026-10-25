@@ -365,9 +365,34 @@ void test_an_old_archive_file_is_converted() {
   TEST_ASSERT_EQUAL(3 * app::MessageStore::RECORD_BYTES, (int)f.sd.open("/meshmash/history/c000000000000.m2", "r").size());
 }
 
+// A message with some before it and some after it, without moving the open window.
+void test_history_around_a_message() {
+  Fixture f;
+  app::MessageStore st;
+  TEST_ASSERT_TRUE(st.begin(&f.flash));
+  app::ThreadKey a = app::ThreadKey::channel(0), b = app::ThreadKey::channel(1);
+  uint32_t seqs[12];
+  for (int i = 0; i < 12; i++) {
+    model::Message m = {};
+    snprintf(m.sender, sizeof m.sender, "Person");
+    snprintf(m.text, sizeof m.text, "text %d", i);
+    seqs[i] = st.append(i % 3 == 2 ? b : a, m);   // every third is in the other conversation
+  }
+  model::Message out[16];
+  int n = st.around(a, seqs[4], 3, 3, out, 16);   // a's messages: 0 1 3 4 6 7 9 10
+  TEST_ASSERT_EQUAL(6, n);
+  TEST_ASSERT_EQUAL_UINT32(seqs[1], out[0].seq);
+  TEST_ASSERT_EQUAL_UINT32(seqs[4], out[2].seq);
+  TEST_ASSERT_EQUAL_UINT32(seqs[9], out[5].seq);
+  TEST_ASSERT_EQUAL(1, st.around(a, seqs[10], 1, 5, out, 16));   // the newest: nothing after it
+  TEST_ASSERT_EQUAL(2, st.around(a, seqs[0], 1, 1, out, 16));    // the oldest: nothing before it
+  TEST_ASSERT_EQUAL_UINT32(seqs[1], out[1].seq);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_round_trip);
+  RUN_TEST(test_history_around_a_message);
   RUN_TEST(test_the_whole_route_is_kept);
   RUN_TEST(test_an_old_archive_file_is_converted);
   RUN_TEST(test_sender_clock_offset_is_kept);

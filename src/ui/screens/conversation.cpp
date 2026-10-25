@@ -45,9 +45,10 @@ void hitMessage(App& a, const Rect& area, int top, int h, int index) {
   if (y1 > y0) a.hit({area.x, y0, area.w, y1 - y0}, HitTarget::ROW, index);
 }
 
+// `dim`: shown on weak evidence only (a thread's maybe-members): quieter than the rest.
 void drawMessage(App& a, Canvas& c, const model::Message& m, bool chan, bool sel, const Rect& r, int top,
-                const mc_font_t* f, int textW) {
-  uint8_t bar = m.outgoing ? C_ACCENT : chan ? C_CHAN : C_CHAT;
+                const mc_font_t* f, int textW, bool dim = false) {
+  uint8_t bar = dim ? C_DIM : m.outgoing ? C_ACCENT : chan ? C_CHAN : C_CHAT;
   int lines = wrapText(m.text, f, textW, nullptr, nullptr);
   int h = a.mx().meta + lines * f->height;
   if (sel) c.fillRect(r.x + 4, top, r.w - 7, h + 1, C_SEL);
@@ -63,8 +64,9 @@ void drawMessage(App& a, Canvas& c, const model::Message& m, bool chan, bool sel
     c.text(x + 1, top + 1, "me", sf, C_ACCENT);
     x = c.text(x, top + 1, "me", sf, C_ACCENT) + 5;
   } else if (m.sender[0]) {   // channels and rooms carry the author
-    c.text(x + 1, top + 1, m.sender, sf, C_CHAT, -1, 100);   // twice, a pixel apart: bold, so a
-    x = c.text(x, top + 1, m.sender, sf, C_CHAT, -1, 100) + 5;   // mention in the text doesn't outshine it
+    uint8_t who = dim && !sel ? C_DIM : C_CHAT;
+    c.text(x + 1, top + 1, m.sender, sf, who, -1, 100);   // twice, a pixel apart: bold, so a
+    x = c.text(x, top + 1, m.sender, sf, who, -1, 100) + 5;   // mention in the text doesn't outshine it
   }
   x = c.text(x, top + 1, t, sf, C_DIM) + 5;
   if (m.outgoing) {
@@ -103,12 +105,12 @@ void drawMessage(App& a, Canvas& c, const model::Message& m, bool chan, bool sel
     }
   }
 
-  DrawCtx d{&c, f, r.x + 9, top + a.mx().meta, C_TEXT, false};
+  DrawCtx d{&c, f, r.x + 9, top + a.mx().meta, dim && !sel ? C_DIM : C_TEXT, false};
   wrapText(m.text, f, textW, drawLine, &d);
 }
 
 // The thread screen, below ConversationScreen.
-void showThread(App& a, model::ThreadId id, const model::Message* msgs, const int* idx, int n, uint32_t selSeq);
+void showThread(App& a, model::ThreadId id, const model::Message* msgs, const int* idx, const uint8_t* weak, int n, uint32_t selSeq);
 void openInfo(App& a, model::ThreadId id, const model::Message& m, bool chan, bool fromThread);
 void startThread(App& a, model::ThreadId id, uint32_t seq);
 
@@ -867,6 +869,7 @@ class ThreadScreen : public Screen {
 public:
   model::ThreadId id;
   model::Message* msgs = nullptr;   // the thread, oldest first (on the heap while the screen is open)
+  uint8_t weak[THREAD_MAX] = {};   // 1: in the thread on weak evidence (drawn quieter)
   int n = 0, sel = 0, scroll = 0;
   bool chan = false, ensure = true;
 
@@ -895,7 +898,7 @@ public:
     for (int i = 0; i < n; i++) {
       int top = mr.y + ys[i] - scroll;
       if (top >= mr.y + mr.h || top + hs[i] <= mr.y) continue;
-      drawMessage(a, c, msgs[i], chan, i == sel, mr, top, f, textW);
+      drawMessage(a, c, msgs[i], chan, i == sel, mr, top, f, textW, weak[i]);
       hitMessage(a, mr, top, hs[i], i);
     }
     drawScrollbar(c, mr, total, scroll, mr.h);
@@ -947,12 +950,12 @@ private:
 
 ThreadScreen s_thread;
 
-void showThread(App& a, model::ThreadId id, const model::Message* msgs, const int* idx, int n, uint32_t selSeq) {
+void showThread(App& a, model::ThreadId id, const model::Message* msgs, const int* idx, const uint8_t* weak, int n, uint32_t selSeq) {
   if (n > THREAD_MAX) n = THREAD_MAX;
   s_thread.onLeave();
   s_thread.msgs = (model::Message*)malloc(sizeof(model::Message) * n);
   if (!s_thread.msgs) { a.toast("Not enough memory", C_WARN); return; }
-  for (int i = 0; i < n; i++) s_thread.msgs[i] = msgs[idx[i]];
+  for (int i = 0; i < n; i++) { s_thread.msgs[i] = msgs[idx[i]]; s_thread.weak[i] = weak ? weak[i] : 0; }
   s_thread.id = id;
   s_thread.n = n;
   s_thread.sel = n - 1;
@@ -974,23 +977,21 @@ static bool historyAt(void* ctx, int i, model::Message& m) {
 // The thread a message belongs to: follow the @mentions back (see ui/thread.h), through the
 // whole history. The conversation behind stays where it is; only the thread screen moves.
 void startThread(App& a, model::ThreadId id, uint32_t seq) {
-  enum { HISTORY = 96 };
+  // Around the picked message: what came before it, and what came after (replies). The Cardputer
+  // looks at fewer, for its smaller heap.
+  const int before = model::PATH_BYTES > 6 ? 64 : 40, after = model::PATH_BYTES > 6 ? 24 : 12;
   HistoryBuf h;
-  h.m = (model::Message*)malloc(sizeof(model::Message) * HISTORY);
+  const int room = before + after;
+  h.m = (model::Message*)malloc(sizeof(model::Message) * room);
   if (!h.m) { a.toast("Not enough memory", C_WARN); return; }
-  // The newest messages, so the replies after the picked one are there; a message further back
-  // than that gets the history up to it.
+  h.n = a.m().historyAround(id, seq, before, after, h.m, room);
   int at = -1;
-  h.n = a.m().history(id, 0xFFFFFFFFu, h.m, HISTORY);
   for (int i = 0; i < h.n && at < 0; i++)
     if (h.m[i].seq == seq) at = i;
-  if (at < 0) {
-    h.n = a.m().history(id, seq, h.m, HISTORY);
-    if (h.n > 0 && h.m[h.n - 1].seq == seq) at = h.n - 1;
-  }
   int idx[THREAD_MAX];
-  int cnt = at < 0 ? 0 : buildThread(historyAt, &h, h.n, at, a.m().prefs().nodeName, idx, THREAD_MAX);
-  if (cnt > 0) showThread(a, id, h.m, idx, cnt, seq);
+  uint8_t weak[THREAD_MAX];
+  int cnt = at < 0 ? 0 : buildThreadEx(historyAt, &h, h.n, at, a.m().prefs().nodeName, idx, weak, THREAD_MAX);
+  if (cnt > 0) showThread(a, id, h.m, idx, weak, cnt, seq);
   else a.toast("Message not found", C_DIM);
   free(h.m);
 }

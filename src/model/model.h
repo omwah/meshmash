@@ -322,6 +322,9 @@ public:
   // sequence number) or the last one before it; the window shown by message() stays put.
   virtual int history(ThreadId t, uint32_t upTo, Message* out, int max) = 0;
   virtual void clearHistory(ThreadId t) = 0;
+  // Up to `before` messages up to and including the one at `seq`, and up to `after` messages after it,
+  // oldest first (at most `max` in all); the window shown by message() stays put.
+  virtual int historyAround(ThreadId t, uint32_t seq, int before, int after, Message* out, int max) = 0;
   virtual uint16_t unreadTotal() const = 0;
   virtual bool send(ThreadId t, const char* text) = 0;
 

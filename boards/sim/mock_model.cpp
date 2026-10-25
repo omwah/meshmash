@@ -412,6 +412,14 @@ int MockModel::history(ThreadId t, uint32_t upTo, Message* out, int max) {
   return n;
 }
 
+int MockModel::historyAround(ThreadId t, uint32_t seq, int before, int after, Message* out, int max) {
+  int n = history(t, seq, out, before < max ? before : max);
+  if (n < 1 || out[n - 1].seq != seq) return n;
+  for (int j = 0; j < _nMsgs && after > 0 && n < max; j++)
+    if (_msgs[j].t == t && _msgs[j].m.seq > seq) { out[n++] = _msgs[j].m; after--; }
+  return n;
+}
+
 void MockModel::clearHistory(ThreadId t) {
   int w = 0;
   for (int r = 0; r < _nMsgs; r++)

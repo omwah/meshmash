@@ -58,6 +58,7 @@ public:
   int loadNewer(model::ThreadId) override { return 0; }
   bool atNewest(model::ThreadId) const override { return true; }
   int history(model::ThreadId t, uint32_t upTo, model::Message* out, int max) override;
+  int historyAround(model::ThreadId t, uint32_t seq, int before, int after, model::Message* out, int max) override;
   void clearHistory(model::ThreadId t) override;
   uint16_t unreadTotal() const override;
   bool send(model::ThreadId t, const char* text) override;

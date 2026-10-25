@@ -5,6 +5,7 @@ wait 300
 key enter
 shot corpus-chat
 key l
+key up 14
 shot corpus-picked
 key t
 shot corpus-thread

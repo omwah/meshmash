@@ -104,6 +104,8 @@ public:
   // The `max` messages of a conversation with seq <= upTo, oldest first, read from the ring and
   // the archive without touching the window; returns how many.
   int history(const ThreadKey& k, uint32_t upTo, model::Message* out, int max);
+  // The same with messages after `seq` too: `before` up to and including it, `after` following.
+  int around(const ThreadKey& k, uint32_t seq, int before, int after, model::Message* out, int max);
   // Delete a conversation's messages (ring and archive).
   void clear(const ThreadKey& k);
 

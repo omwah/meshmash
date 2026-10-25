@@ -15,6 +15,9 @@ public:
   // Script hooks.
   void rxDirect(int contact, const char* text);
   void rxChannel(int slot, const char* sender, const char* text);
+  // Fill a channel with the last `maxMsgs` messages of channel `srcChan` in an anonymised corpus file
+  // (scripts/anonymise-corpus.py), ending now. Returns how many.
+  int loadCorpus(const char* path, int srcChan, int slot, int maxMsgs);
   void setBle(bool connected) { _ble = connected; _rev++; }
   void setGpsFix(bool fix) { _gps.fix = fix; _rev++; }
   void setFresh(bool fresh) { _fresh = fresh; }

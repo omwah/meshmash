@@ -2,6 +2,7 @@
 #include "app/radio_presets.h"
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
 namespace sim {
 
@@ -466,6 +467,47 @@ void MockModel::rxDirect(int c, const char* text) {
   addMsg(t, now(), false, "", text, 20, _contacts[c].hops, Delivery::None);
   threadFor(t)->hidden = false;
   threadFor(t)->unread++;
+}
+
+int MockModel::loadCorpus(const char* path, int srcChan, int slot, int maxMsgs) {
+  FILE* f = fopen(path, "r");
+  if (!f) return 0;
+  struct Row { uint32_t off; char who[32]; char text[160]; };
+  std::vector<Row> rows;
+  char line[512];
+  while (fgets(line, sizeof line, f)) {
+    int chan = 0;
+    unsigned seq = 0, off = 0;
+    int used = 0;
+    if (sscanf(line, "%d\t%u\t%u\t%n", &chan, &seq, &off, &used) < 3 || chan != srcChan) continue;
+    char* who = line + used;
+    char* tab = strchr(who, '\t');
+    if (!tab) continue;
+    *tab = 0;
+    Row r{};
+    r.off = off;
+    snprintf(r.who, sizeof r.who, "%s", who);
+    char* t = tab + 1;
+    size_t w = 0;
+    for (; *t && *t != '\n' && w + 1 < sizeof r.text; t++) {   // \n in the file is a line break
+      if (t[0] == '\\' && t[1] == 'n') { r.text[w++] = '\n'; t++; }
+      else r.text[w++] = *t;
+    }
+    rows.push_back(r);
+  }
+  fclose(f);
+  if ((int)rows.size() > maxMsgs) rows.erase(rows.begin(), rows.end() - maxMsgs);
+  if (rows.empty()) return 0;
+  ThreadId t{ThreadKind::Channel, (uint16_t)slot};
+  uint32_t end = now(), last = rows.back().off;
+  for (const Row& r : rows) {
+    bool out = !strcmp(r.who, "me");
+    int hops = (int)(r.off % 5);
+    addMsg(t, end - (last - r.off), out, out ? "" : r.who, r.text, (int8_t)(-4 * (int)(r.off % 9)), (int8_t)hops,
+           out ? Delivery::Sent : Delivery::None);
+  }
+  threadFor(t)->hidden = false;
+  return (int)rows.size();
 }
 
 void MockModel::rxChannel(int slot, const char* sender, const char* text) {

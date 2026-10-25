@@ -1,0 +1,12 @@
+# Real conversation shapes (anonymised: scripts/anonymise-corpus.py) in a channel, and threads over them.
+vim on
+corpus test/data/corpus-real.txt 0 0 70
+wait 300
+key enter
+shot corpus-chat
+key l
+shot corpus-picked
+key t
+shot corpus-thread
+key up
+shot corpus-thread-up

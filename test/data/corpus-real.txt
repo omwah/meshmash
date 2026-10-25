@@ -1,0 +1,479 @@
+0	1	1	Alder	@[Birch] Rube da Dopives! Dreak, lairo!
+0	14	5832	Cedar	Fopl ge droufouge grou
+0	19	6244	Dune	Taifa grigo li
+0	20	6249	Birch	Fo grate Vab zaifl zo'f fag greavo ledr leatro fl tibr. Lad droufouge lo luga traikak.
+0	21	6305	Cedar	@[Dune] taifa
+0	22	6318	Cedar	@[Birch]
+0	23	6402	Ember	@[Dune]\n>Taifa robr..\n
+0	24	6442	Ember	@[Fern]\n>t luga vai..\nZeda ge vaz ge?
+0	25	6465	Dune	T kearab li. Nu to gouve
+0	26	6509	Heath	Taifa
+0	27	6603	Iris	@[Heath] dr
+0	28	6631	Juniper	@[Heath] taifa drof Stodr Feleagr
+0	29	6662	Kestrel	@[Heath] pabrou
+0	30	6679	Ember	@[Heath]\n>Taifa\nTaifa
+0	31	6958	Cedar	@[Dune] tibo gouve
+0	35	7786	Birch	@[Larch] Tais!
+0	36	7829	Moss	tre geap raipl
+0	37	8523	Nettle	@[Birch] man Redeadrof kik poup da Fluplami, Dripu vuste gou
+0	40	11731	Larch	drop vi pou... ple drourea da dustedou
+0	64	13428	Otter	@[Larch] midet drof Draigrai!
+0	70	15871	Pine	@[Quill] limef to toufou bra
+0	71	15940	Rowan	Midet Geap!
+0	72	16306	Sage	@[Rowan] Midet. 9 plot lo Naibru.
+0	73	16926	Thistle	taifa drof Sobroug Fouflal
+0	74	17072	Umber	@[Thistle] 6 plot lo Daifl.
+0	75	17259	Vale	Kous
+0	76	17302	Vale	Vaist gopop. Tr. Flavo Leadra gai
+0	77	17340	Willow	kous taip pub
+0	78	17385	me	p
+0	79	17430	Cedar	@[Pine]
+0	80	17529	Yarrow	@[Pine] drid
+0	81	17834	Zephyr	Mopouzeaz da Noulaifu. Vulu dren fodeatr riv mepoup ro Flaiza Toudaid tomodat.
+0	82	18121	Aspen	Midet gai!
+0	83	18182	Pine	@[Yarrow] flaitrive fo flubre. De T brotram zo
+0	84	18360	Basil	@[Clover] plu.
+0	85	18608	Aspen	@[Dahlia] midet!
+0	86	18650	Ember	@[Vale]\n>Kous\nT'r flatefl vaz da Rainugr
+0	87	18693	Elm	@[Pine] Fou vaz grai lo duti zo brid fl dea riv grenuges plaflaze?
+0	88	19000	Yarrow	@[Pine] greamoutr, pereakea to l taip lagri
+0	89	19183	Flint	Plu geap floveg kalozou gr po?
+0	90	19266	Yarrow	@[Flint] man Taip bamidak
+0	91	19322	Quill	@[Pine] T gagr brokai lou de T sib ge riv rube!
+0	93	19560	Gale	bread baiz duz mopouzeaz da Grabre. Bea to nafozala grou?
+0	94	19601	Cedar	@[Gale] stad kea poup
+0	95	19611	Aspen	@[Gale] rafo duz kotub.
+0	96	19656	Flint	@[Gale] Tibo ste da Rus Draireat Brogea
+0	97	19810	Hazel	45da lip stub trute pegraf ple lod pleas traikak naibru
+0	98	19855	Gale	bread baiz duz mopouzeaz da Grabre. Bea to nafozala grou?
+0	99	20004	Quill	Foule bread baiz duz mopouzeaz da ligraifl keb 09 naik duz pealai brid
+0	100	20175	Hazel	Boupaigi riv trute brebo drik zo pli rase Naibru duz plea da riv vakifoud. Plea fonu Vaz'pu Lourobr!
+0	101	20458	Pine	@[Elm] duti zo brid.  Grenuges dea vup ni 975so
+0	102	20509	Pine	@[Quill] flail bri da riv feafasta. Ko drof taika
+0	103	21022	Quill	@[Pine]  Traidre zo to pl vuvou. Nigr to taika no gridrod naboulobr dren da teko taika to ve figr flaibus?
+0	105	21883	Ivy	trute rufaf drof baine lo pleas kom. porai zo drolog brunea keb zoug!
+0	106	21941	Jasper	Dren vidrou ro vo mopouzeaz gal duz zo'f gai dorabrifo da De Grabre Ka
+0	107	22038	Kelp	Taip bamidak, geap
+0	108	22109	Linden	R9 plokizi kous BR-06 - flunib nouma BR-06 zotreage.
+0	109	22154	Maple	vo brosus
+0	110	22199	Nimbus	leavu po
+0	111	22210	Opal	@[Nimbus] leavu po
+0	113	22473	Poppy	Vo trun duz T bri ro riv plubrair, plou sebai lo flit trabr lo vo plubunou!
+0	115	22523	Quill	Stipeagr!!!!
+0	116	22535	Aspen	@[Poppy] stipeagr!!!
+0	117	22600	Willow	stipeagr
+0	120	22650	Quartz	Sorutuzepizease
+0	121	22652	Reed	Sorutuzepizease
+0	124	23219	Ember	@[Poppy]\n>Vo trun no..\nSorutuzepizease
+0	125	23334	Cedar	@[Poppy] stipeagr
+0	126	23527	Ivy	stean st
+0	127	23532	Sorrel	@[Poppy] Stipeagr!
+0	128	23591	Tansy	@[Poppy] Sorutuzepizease!
+0	129	23748	Urchin	Stipeagr!
+0	130	23793	Violet	dena... pla vona kous drof Douvapopl godo, bri ze botoubr kea?
+0	131	23838	Quill	@[Violet] T rid vaz da Ligraifl
+0	132	23873	Aspen	@[Violet] rid vaz da Draigrai
+0	133	23874	Poppy	@[Violet] rid vaz da Si Sudre
+0	135	23919	Clover	Midet
+0	136	23964	Wren	Taip bamidak gai
+0	137	24049	Ember	@[Violet]\n>dena... sa..\nVaz'pu gagrouf Rainugr
+0	138	24131	Cedar	
+0	139	24419	Xenia	Taip bamidak
+0	140	24457	Umber	@[Violet] 9 plot lo Daifl.
+0	141	24532	Nimbus	
+0	142	24659	Yew	@[Quill] gref poudepu paik droug: touzost duz vaidudre-doudesa
+0	143	24678	Yew	@[Poppy] stipeagr!
+0	147	25170	Elm	@[Poppy] STIPEAGR!!!!!
+0	148	25447	Zinnia	Mugraivi Nida
+0	149	25502	Alder2	Vi pleg Dusodai Plofl trag l zoufou feafasta st riv 0re breap. Troukealea GREAZ keb riv gead
+0	150	26087	Alder2	Beatod feala
+0	151	26122	Flint	@[Alder2]Droudai vaz
+0	152	26325	Alder2	Leavu riv rouf keb floub dairair keb Domikoup?
+0	153	26395	Nimbus	Stipeagr st riv pla brosus
+0	154	26492	Alder2	
+0	155	26529	Yarrow	Deaf dra Paipl
+0	156	26594	Alder2	Mu floveg zoustem lo kous GREAZ, Deane, K3 Faf, SU61, R0 - zo fal l stelapl grep pabroutou. Flunib stou drisalul
+0	157	26632	Alder2	
+0	158	26802	Poppy	@[Alder2] Vi ploum GREAZ st vo B8. Bag trek ploum zo keb riv digr veadis fo drabr, tibo flavo trag zo!
+0	159	26887	Alder2	@[Poppy] repo lo lipl ledr! Goste vaz keb riv drisalul.
+0	160	27131	Poppy	@[Alder2] riv gref lagri T grai l bena kebe lagepul mogre lo ziseam riv bovo kast st plemonupl duz feafasta.
+0	161	27309	Alder2	T plik beadaig ledr da riv pibr mofafl. T kobre.
+0	162	27481	Cedar	@[Alder2] mud bre lo 0 trere duz na dogr
+0	163	27493	Quill	@[Alder2] Plik vaz grai maip keb bruplot?
+0	164	27596	Alder2	@[Cedar]  loudra! T plik beadaig lo riv fleadri.
+0	165	27602	Birch2	Mo
+0	166	27640	Alder2	@[Quill] ple l plodeara dogaibr, lad man, flad T grai l foste taid keb bou duz riv grouplidu.
+0	167	27641	Birch2	T loubebafe vo Z brou pl l feafasta trag traidri .02. Zo fana dru gr petrost lo riv domikoup gal plo PEA. Floveg grou?
+0	168	27664	Quill	@[Alder2] Ploub!
+0	169	27831	Cedar2	@[Alder2]\n75du00bo
+0	170	27901	Birch2	Mo
+0	171	27902	Cedar	@[Cedar2] gutraibis kezousteab lo vaz lou
+0	172	27912	Birch2	Nam rerugraflil?
+0	173	28027	Alder2	To taika l pea/vea traidri fo riv neatr?
+0	174	28086	Ivy	feafasta koru to mid (beatou pea) fl trag plemonupl brea riv gou.
+0	175	28133	Ivy	fl riv baflal st riv drarumu foub. droup to dren beatou pea mid.
+0	176	28401	Violet	@[Umber] GI
+0	177	28794	Dune2	pepu brais loubo duz mid
+0	178	30382	Elm	Kuza drop draiva flogobuga grai deveas po ledr kaito vo godo suflai drop. T'r bifuvaibrov bouzai vo vour feafasta. Zo'f dren fag roudra
+0	179	30408	Cedar	
+0	180	32039	Cedar2	Plu Geap leavu brugeap?
+0	181	32154	Ember2	@[Cedar2] Fag doro
+0	182	32199	Fern2	Stoutre VA
+0	183	32886	Heath2	Taip vevomef nafozala
+0	184	33020	Yarrow	@[Heath2] taip vevomef
+0	185	33191	Iris2	@[Ember] rid vaz da fasev grabre Relesobrea
+0	186	33283	Thistle	Keteak' drof Sobroug Fouflal
+0	187	33330	Juniper2	@[Thistle]
+0	188	33900	Ember	@[Iris2]\n>@[KOF-06 M..\n
+0	189	34109	Fern2	Brusaimo VA 19052
+0	190	34183	Kestrel2	@[Fern2]  drof riv tu
+0	191	35525	Kestrel2	@[Juniper2] bra zo fag ledr rea lo dri la bra
+0	192	36080	Larch	Taip vevomef drof Lostea
+0	193	36519	Larch2	Taip Vevomef drof Noseazo
+0	194	39471	Moss2	Taifa
+0	195	39593	Nettle2	@[Moss2] taifa
+0	196	40228	Otter2	Taip flukul neastoude drof Douvapopl. Bri ze botoubr kea? d65s, pleaplo [greaploub] trag stezir...
+0	197	40402	Kestrel2	@[Otter2] man lo deamugr
+0	198	40420	Nettle2	@[Otter2] rid vaz da Groukeam
+0	199	40454	Ember	@[Otter2]\n>Taip bedro..\nTaip neastoude vaz bri gagrouf Rainugr
+0	200	40599	Birch2	
+0	201	41984	Kestrel2	@[Birch] dreak
+0	203	43152	Pine2	Fedobref feala da
+0	204	43304	Ember	@[Quill2]\n>Fedobref g..\nDuz bea bri vaz neste seadr drof Rainugr
+0	205	43791	Rowan2	taifa
+0	206	43808	Sage2	taifa
+0	207	44285	Thistle2	:
+0	208	44377	Anon	@[Thistle2] danokis foutru da drano fa
+0	209	44759	Thistle2	:  Drid miku
+0	210	44851	Pine	Flou mogre'f vo bam
+0	211	45040	Cedar	
+0	212	45334	Anon	@[Pine] gos lo grefea zo
+0	213	45613	Pine	Duz zum
+0	214	45713	Yarrow	Kom duz zum?
+0	215	45742	Pine	Ve zoug duz zum
+0	216	45787	Umber2	zeda
+0	217	45832	Vale2	@[Poppy] sorutuzepizease flou ledr geze befa. drak nato to stizaliga zud stedrozu. vo dro to geaves da mogid.
+0	218	47278	Anon	Saigrez fulit da drano
+0	219	47802	Nettle2	St riv Rus Stazi kai
+0	222	47847	Willow2	Kous
+0	223	47899	Yarrow2	@[Otter2]
+0	224	48162	Otter2	Rus Digu ra to 8.6V' sogoupa po drof gr. Mi mu T gref gosi groutai po taika...
+0	225	48168	Iris	@[Otter2] visai da 8v Deta
+0	227	48228	Otter2	@[Iris] Drid!
+0	228	48303	Zephyr2	@[Otter2] Sib vaz dra Kigeatr Baine?
+0	230	48398	Otter2	T vezaitr st 'ledr bizad geap", plouvef rikaibi zo tri'z luga poup, fag keb zeda T'r neste.
+0	231	48404	Aspen2	T'r pla. Bea fal maip trek kout da no neagragon (t.n. momeasog fl feanouplas)?
+0	232	48458	Zephyr2	@[Otter2] Neab. Drop vaz bri da riv restafa be mogre vaz bri kom. Taip neastoude
+0	233	48478	Otter2	Drifib lo zuflu  maip gopop po keb dig bustap. Vulu'ta trek drifib RABR T lipl, zou fleabai.
+0	234	48532	Iris	@[Otter2] fis zou fleabai
+0	235	48638	Otter2	@[Iris] T bai'z reple vulu'pu poupufla zo kea gapaidra, pli na flouf lagri?
+0	237	48702	Otter2	Nigr drifib lo gis pistuzulu lo refle ziflovul, lad ~$794/ba? Poupufla l domikoup brai restafa, mou mu vulu'pu makitrizai.
+0	238	48713	Basil2	Taifa?
+0	239	48730	Clover2	@[Aspen2] koplis flosogr to tidi. Lou doro flestai ro rube kebe sib zulea zai boloula.
+0	240	48740	Otter2	Pl no dulainistou. Roub, laifaik mogrou lo navu trag stezir duz brumupigrour restafa :P
+0	241	48769	Quartz	@[Basil2]
+0	249	52493	Nettle2	@[Poppy] stipeagr!!
+0	250	53534	Otter2	@[Ivy] "zoug flogobuga = zoug zounukeam = grud bobroutroba." Loudra! T lous ledr, gafli riv lam :)
+0	252	53609	Otter2	T'ta dogr kuza stutupidomol VU luga da vo plair, duz sto tebaiz lo dafe lo lam.
+0	254	53771	Otter2	T'ta rid l riz floulus lo dopu trag. Ro 8bu vegeaf, gomud T nofai "foudun" vo lod brunea dreap, lad T bai'z reple ledr'f stug.
+0	255	53867	Otter2	Floveg grai l taip grufesai (laisi?) keb restafa zulaseb da graikoufl trag domikoup? Maip to rekaikaigi, gafli ve trailobrist dra.
+0	256	53888	Otter2	Pl keb plerou voumezoropl, zeda
+0	257	53900	Otter2	...to draileas?
+0	258	53955	Ivy	kuza roustunif fo grenuges to baitaiplo, lad mu b drel ro riv keap, soutaros feat!
+0	262	54586	Ivy	mu b dogr luga trag 968bru, zo'f riv rube... kikeapai duz dodru duve lorubeko fag maipisa lad plovagra.
+0	263	54635	Ivy	t'p musto trag 47flu stezir, kaigreabri st riv plemonupl tige fo zo.
+0	265	55138	Dahlia2	Taip bamidak nafozala
+0	267	55574	Reed	@[Poppy]
+0	270	55865	Basil2	@[Dahlia2] taip bamidak
+0	271	55995	Elm2	Taip bamidak geap
+0	273	56703	Flint2	Riv Peagr to totr
+0	274	56877	Flint2	Grea to fla duz plad
+0	275	56904	Birch2	Greg go vo feafasta
+0	276	57100	Flint2	grea
+0	277	57531	Otter2	@[Ivy] GI! Man st  968Bru, fou brof figr zeap ledr dea bemai duz rast fo tipl madrivi+bufaiplo, ZO fletufof de >=3.8Gag lou.
+0	278	57566	Otter2	Vaido tebaiz, kuza fo dreap gro figr bufaiplo boup kea poup.
+0	279	57725	Otter2	T gagr lo feala kea riv gutimou, rid teno fo bripibadr. Loudra grigo! Duz kous FEAFASTA pe graizai. :(
+0	282	57806	Otter2	Brebo drik brais ropl. Gri. Zo dren dogro l gead kea taika pl l liviplodr vona. Ste pl l stil zeap T stanet zo, popea treroun.
+0	290	58498	Gale2	Kous
+0	293	58543	Juniper2	@[Gale2] treroun. Dra #kous dirokit keb tra gretudru
+0	294	58588	Birch2	
+0	305	60133	Opal	@[Hazel2] dr
+0	310	60788	Cedar2	@[Opal] plu
+0	313	61745	Birch2	Vaz lipl gr??? LOU FLA LO MAB
+0	315	62203	Ivy2	Taifa drof gadoutro
+0	316	62204	Birch2	
+0	317	62315	Ivy2	Grit
+0	318	62480	Ivy2	Dr
+0	319	62616	Birch2	@[Ivy2] tre Veagro
+0	320	62692	Ivy2	Taifa gai drof riv TU
+0	321	62728	Birch2	@[Ivy2] leavu riv TU?
+0	322	62851	Ivy2	Braiga Grougr
+0	326	63327	Ivy2	@me0b-g8 dr
+0	327	63369	Ivy2	@d0fuk-d566
+0	331	63457	Anon	Taifa
+0	334	63560	Jasper2	@[Ivy2] taifa, Tritramai
+0	335	63621	Ivy	GA0FLO, nero feafasta to stemodo braimil lod lou baige. mezo brid lo 24 dreko.
+0	336	63690	Kelp2	Taifa
+0	339	63786	Ivy2	
+0	340	63809	Ivy2	Ledr gr
+0	347	64111	Ivy2	@fag vapl.    Dren bakefes veala lo 80fi
+0	348	64126	Ivy2	Be vo faz
+0	349	64186	Ivy	tais. luflaim fukiku b da vo druvane tigroug keap :)
+0	350	64223	Linden2	Dr
+0	353	64742	Ivy2	@Breg mo
+0	354	64879	Dune2	l mo
+0	355	64926	Dune2	bob+-pi
+0	356	65169	Linden2	Gedraigr maip lagri kea vaig
+0	359	65249	Linden2	Lamol kebe ploum domikoup
+0	361	65266	Anon	@[Linden2] lourobr
+0	364	65335	Kelp	Bamidak, geap
+0	365	65379	Kelp	Giple flatefl l mogrofub topep st duvaip pouzugi fa :/
+0	366	65847	Maple2	Midet geap, nafip lougour lo zop vo Trifikar/Muno soubro dezas fabre SOF tino tra. Lam zo soutaros, grigatum: #trifikar-doru
+0	368	66087	Dune2	taifa
+0	373	66982	Iris2	Taip bamidak gai
+0	374	67025	Cedar2	@[Iris2], gre: PIP 05.7 ki, MEST -80 flu, 0 plot plo BI2G8L, 61LUP0, L41343
+0	376	67148	Elm2	@[Dune2] t groum nesta kav.
+0	377	67355	Dune2	t drag bigouz NED
+0	378	67468	Nimbus2	Kav to zaz
+0	379	67544	Dune2	l dagos bre fo 4073 bri reagreano
+0	381	67824	Rowan	#plovedeas
+0	384	68136	Opal2	Floveg neab?
+0	385	68202	Poppy2	@[Opal2] 05 plot lo Dograizi Deta
+0	386	68237	Quartz2	Kous
+0	389	68297	Ivy	Riv #kous dirokit to kealibraf keb nero taizetira brealod zostu!
+0	390	68317	Opal2	Naika ro vaz drof grelev fo riv rastug
+0	394	68878	Ivy	seaz fl tea?
+0	395	69205	Anon	@[Opal2] rid vaz da Fedobref
+0	396	69247	Anon	Nafozala gaike keb riv seaz zaist?
+0	397	69319	Reed2	Dr geap. Nam def neab?  Zaplait feafasta veadis tera zup duz gomud drik zo to fag treroun pl drop pl pleadr
+0	398	69371	Ivy	@[Reed2] Mis.
+0	400	69586	Sorrel2	@[Reed2] 68 plot lo Stodr Feleagr.
+0	401	69731	Linden2	@[Reed2] 45 plot lo Dustedou
+0	408	70272	Iris	@[Reed2] 45 zeag lo 8v Deta
+0	429	73459	Tansy2	Floveg lous gr?
+0	434	73511	Nettle2	@[Tansy2] rid vaz
+0	435	73522	Urchin2	@[Tansy2] fudr plot lo Vaboudrim
+0	437	73559	Urchin2	Drop taip neazo vo paideg kudea vilaruta, T'r pletred kea.
+0	448	73981	Ember	@[Urchin2]\n>Drop taip ..\nVaz grai l taip neazo
+0	451	74551	Tansy2	Dizealeke maip to rutot? Floveg neab?
+0	452	74572	Maple2	@[Tansy2] neab vaz
+0	453	74586	Aspen	@[Tansy2] tonaikous vaz da Draigrai
+0	454	74645	Tansy2	@[Aspen] laifaik goste vaz! Ze gubroust Zeakou fletreat.
+0	455	74773	Tansy2	Drak nafozala to stinel l taip bamidak!
+0	456	74897	Hazel	@[Tansy2] tais, zeda'f riv ti kom? To bridr popea da riv doka?
+0	457	75039	Cedar	@[Tansy2]
+0	458	75160	Tansy2	@[Hazel] Man, ze'pu bugodai st pla fletreat keb Bridr. Ze trab'z dafe zeap ledr plik muraip
+0	459	75287	Tansy2	@[Hazel] Sifan to kom l Staibuze 8plib Breza ven.
+0	460	75356	Tansy2	Zo'f nudropo de fag plazaivak draiva. Riv kafe to lo greaple sifan duz gusaib.
+0	465	75563	Tansy2	Sifan dea troudrou lo na fabre duz Bridr dea sirurail.
+0	466	75600	Tansy2	Lalounai bri fag botoubr kea keflipistaip britrit Sifan.
+0	470	76587	Reed	Nigr brealod kea FE6 st riv pla Sifan fletreat, redea gagr lo doud zo totr po lo FE2
+0	484	79406	Pine	@[Tansy2] zo'f riv geap kom grabr
+0	498	80679	Pine	@[Reed] feala nero giki plemonupl braimil
+0	501	80842	Reed	T'ta pubreafea l riz braimil lo flagrear flestai, mu ledr'f zeda vaz'pu tregum
+0	503	80924	Pine	T'r zeamuri sebai 75
+0	504	81094	Reed	Sedrabream trab'z ge ledr, dudra sod fl drais lopap brea riv digr ~8 dreko
+0	505	81183	Pine	Redea na kuza veamai kaisifl fopl
+0	507	81229	Kestrel2	Vo giki braimil bri vup kom st vo plemonupl
+0	508	81300	Reed	Dre, T zu fukiku vo lalounai kadaitra fleaf st riv stigeabe VIFL...
+0	509	81323	Kestrel2	Bre vo nobomo lo 7
+0	511	81380	Kestrel2	@[Reed] kuli bri bre lo 65 braimil
+0	512	81415	Pine	@[Kestrel2] taip.  Braimil visai veadamea 9393 lopap da 9 tera
+0	513	81494	Kestrel2	@[Pine]
+0	514	81516	Kestrel2	@[Pine] kim ledr'f stea
+0	515	81528	Reed	@[Pine] Koutaim vaz grai l lagr lilidrilop grufame?
+0	516	81543	Pine	@[Reed]
+0	517	81563	Reed	T bai'z dafe zeda'f po trag ledr Plovedeas nadrugr vaitut.
+0	518	81641	Pine	@[Kestrel2] \nNero Studou #34
+0	519	81881	Reed	Mi, boup vaz maizebr sebai Bridr? Zo popea braimil tadro 05 dreko
+0	520	81891	Reed	zeap zo'f vigodr ledr to
+0	521	82078	Pine	Zo'f zeamuri plemonupl brifl nero baib.  Teaguplu veamai kaisifl
+0	522	82293	Kestrel2	@[Pine] gi
+0	523	82366	Pine	@[Kestrel2] braimil bri geze kaisifl. Koulufla druk segiro riv geap to mila
+0	539	82411	Reed	Mi, boup vaz maizebr sebai Bridr? Zo popea braimil tadro 05 dreko
+0	540	82456	Violet2	Kous
+0	541	85333	Wren2	@[Violet2]: gre da Dustedou. stou nubea lo #kous
+5	92	1	Xenia2	
+5	122	3706	Ivy	truzomo 56 peliplup gai fosugist da riv triplaiva bra
+5	123	3751	Ivy	@[Yew2] zo plusedr lad t sib'z div st zo drik piplutru\n
+5	202	3796	Kestrel2	Gr lo
+5	285	3841	Xenia2	
+5	291	3886	Juniper2	T'r broufade ro gai riv lairu da poup
+5	360	3931	Zinnia2	
+5	367	4701	Ivy	zo'f zeko
+5	372	4973	Dune2	fubonud
+5	421	10800	Zinnia2	Beabrigeas fl regeriplod?
+5	487	10845	Kestrel2	Taifa drof riv braiga grougr
+5	488	11445	Pine	@[Kestrel2] vaz gagr lo mezo nero braimil vup. Visai 238 lopap seadr
+5	489	11606	Kestrel2	@[Pine] brerou bea  st vo feafasta bri vo mivagr
+5	490	11633	Pine	Plemonupl
+5	491	11701	Kestrel2	@[Pine] de vo papiflaid to neste braimil
+5	494	11906	Pine	Zeda bregaist
+5	495	11941	Pine	S2G33333L35583DO403L9L63610189POLU18SE7G23410R0G9N21BI3ZEA0PIF50
+5	496	11963	Kestrel2	@[Pine] keb vo papiflaid bri vo feafasta pla lo maip veafl
+5	497	11992	Kestrel2	Vo feafasta to bre lo 85 toz braimil
+5	499	12160	Pine	Flogobuga ge 80-03fi
+5	500	12187	Pine	Ve dropefozea douplo na stemodo giki braimil
+5	502	12210	Kestrel2	@[Pine] gi T plik bre zo lo 80
+5	506	12545	Kestrel2	T bre vo giki nobomo lo 65 st vo plemonupl
+5	510	12706	Kestrel2	Taip neazo
+5	529	15538	Pine	@[Kestrel2] neazo!
+5	530	15611	Pine	@[Kestrel2] T grai vo 0 flogobuga bre ro 75fi braimil
+7	9	1	Alder3	baibraip st riv R0 bukai drop
+7	114	46	Iris	Ple trek sitr st lairost8
+7	118	156	Iris	Bag trek godomug lo zop baibraip st deane, fa t grai Kouzos st taika
+7	119	164	Quill	Bea bri riv ZO safl neste kea taika???
+7	134	1812	Yarrow	@[Iris] T reple b plik drik zo
+7	266	1857	Dahlia2	T reple T grai drik 09 de soz.  T grai l grufame.
+7	272	2866	Birch3	t leabr grai lo peavase riv Muno brunaitibur...
+7	288	5035	Iris	Baibraip to rimoup
+7	289	5083	Iris	Stofeti kado traidri st z-vopl
+7	292	5257	Yarrow	@[Iris] zo drid st riv Papiflaid R0 lou
+7	297	5400	Heath2	Bag trek brealod Greaz duz Lugrilouve st riv deane. Popea fag pl reabutou pl brup
+7	299	5478	Yarrow	@[Heath2] gos fag visai fo lugrilouve..
+7	300	5524	Heath2	Rubr T sto zo st Trogre duz vougrea Ri zop zo.
+7	301	5566	Heath2	Zo fal l drid GU lad ridre kuza trurerub.
+7	302	5591	Yarrow	T gagr lo gis totr st trogre.. /domikoup
+7	304	5683	Yarrow	Brup to lastisa riv mul suflai seaz. T nesta Tref'f st riv R0.. dea be lad brup de doro toufou. St deapaif lou
+7	307	7075	Heath2	@[Elm] fal l pla braip kea. Suflai genob.
+7	308	7360	Yarrow	Drid, sto l sak za flisai riz drabr zup
+7	309	7393	Yarrow	T grai l riz ke veakai gaike lo bokas
+7	314	8552	Nettle2	@[Yarrow] dreap luga foste. T kearab kea riv Flea dremok zino
+7	402	8597	Cedar3	@[Iris] T kobre, Baibraip to gaiplou keb riv Z-vopl.
+7	405	8767	Iris	Gref lagri riv gugou st riv deane fudiv botoubr trepl. Riv flafebof keb kebe vifo stisou luga
+7	534	8812	Dune3	@[Iris] Vo kebe vifo dovaimid musto, lad Z-Vopl dralou kebe mu SON fl Tipl
+7	535	8852	Dune3	@[Iris] to fag kealibraf
+7	536	9328	Dune3	@[Iris] T'r st kado_23
+13	236	1	me	kous
+13	244	3432	Ember3	Grit
+13	246	3636	Fern3	z
+13	247	3640	Heath3	@[Fern3] |0g,25,68,59|(8 plot)|0.8f
+13	251	4923	Iris3	Z
+13	253	5030	Iris3	Z
+13	260	5899	Juniper3	/z
+13	261	5903	Kestrel3	@[Juniper3] 8 plot | G2,SE,63,37 | 8.6f
+13	264	6199	Aspen	/grit
+13	268	6946	Reed	/s
+13	269	6951	Kestrel3	@[Reed] 47: Teak Zoste Futavai Drou ?\nS2: Stapado'f Feafasta ?\nG3: G3P ?
+13	280	9105	Larch3	Kous
+13	281	9108	Heath3	@[Larch3] |r52351,rev2lu,61lup0|(0 plot)|3.9f
+13	283	9222	Moss3	S
+13	284	9226	Heath3	41: Stibraloutrug \n8P: ZIPAROBRO Tar... \n59: NE0 VEATRE
+13	286	9478	Iris	S
+13	287	9485	Heath3	65: Plibreap \nS0: feapout \n03: VAG 0  \nL0: MA0GRA Feafasta 8 \n61: Pa. Nafiso - Plit...
+13	295	10013	Opal	kous
+13	296	10020	Heath3	@[Opal] |8g,fu,48,44,59|(6 plot)|0.0f
+13	298	10062	Opal	kous
+13	303	10286	Alder2	Beatod feala
+13	306	11719	Hazel	@[Alder2] visai da brofotr. 23te3l,daf928,070n8g,65325g,5966le
+13	311	12990	Alder2	Goste vaz. Troukealea GREAZ da riv godo keb riv neazo.
+13	312	13053	Alder2	Dur plik na stofeti mous nubea britrit riv dirokit
+13	323	14530	Nettle3	Z
+13	324	14678	Nettle3	Grit
+13	325	14687	Heath3	...\n61: Pa. Nafiso - Plit...
+13	328	14812	Nettle3	Grit
+13	329	14822	Heath3	...\n62: D0GEN Dustedou \n59: NE0 VEATRE
+13	330	14867	Heath3	R2: Vaboudrim - Teagrudr \nP0: VEATRE.BIM - BOFINUD \n8N: Trus Zit \nS7: MEA-P Lousaitea \n85: Diseava Mul Feafasta \n...
+13	332	14909	Ivy2	Z
+13	333	14914	Ivy2	Grit
+13	337	15178	Jasper2	Kous
+13	338	15182	Heath3	@[Jasper2] |p0,25,61|(0 plot)|8.0f
+13	341	15338	Nettle3	Grit
+13	342	15351	Heath3	...\n61: Pa. Nafiso - Plit...
+13	343	15396	Heath3	R2: Vaboudrim - Teagrudr \nP0: VEATRE.BIM - BOFINUD \n7R: DI06 \nS7: MEA-P Lousaitea \n25: ZI Taid Feafasta \n...
+13	344	15421	Nettle3	Kous
+13	345	15563	Otter3	s
+13	346	15567	Heath3	3N: ve ru'f - veatre.bim \nL0: MA0GRA Feafasta 8 \n61: Pa. Nafiso - Plit...
+13	351	16178	Dune2	z
+13	352	16184	Heath3	@[Dune2] |3n,ku,61|(0 plot)|0.3f
+13	357	16667	Pine3	/z
+13	358	16676	Kestrel3	@[Pine3] 6 plot | 2P,P6,2P,68,37 | 0.8f
+13	362	16769	Jasper2	Kous
+13	363	16776	Heath3	@[Jasper2] |p0,41,62,59|(8 plot)|0.0f
+13	369	17590	Quill3	z
+13	370	17593	Heath3	@[Quill3] |0g,25,61|(0 plot)|3.0f
+13	371	17740	Alder2	@[Hazel]\n727d8lai
+13	375	18542	Iris2	S
+13	380	19280	Hazel	@[Iris2] 8me787,5966le
+13	382	19529	Opal2	Z
+13	383	19536	Heath3	@[Opal2] |2n,8n,to,87,61|(6 plot)|9.8f
+13	387	19742	Quartz2	Kous
+13	388	19749	Heath3	@[Quartz2] |44,41,62,86,fl,61|(0 plot)|0.2f
+13	391	19794	Rowan3	Z
+13	392	19839	Heath3	@[Rowan3] |l7,85,59,69,63,pl,59,g8,vi,61|(09 plot)|Pamo Mivagr Gugou
+13	393	20038	Poppy2	S
+13	399	20936	Heath3	Gedrez trouke, kounou-dezas votib! #brubaif
+13	403	21298	Thistle2	/z
+13	404	21302	Kestrel3	@[Thistle2] 0 plot | FEDE,P7S0,G3P8 | 8.0f
+13	406	21517	Quartz2	Grit
+13	407	21522	Heath3	44: ZUG Feafasta \n75: FE06 \n9S: DOU-P41 \n0S: Braip Kaize Taid \n59: NE0 VEATRE
+13	409	22125	Elm2	Z
+13	410	22129	Heath3	@[Elm2] |4533,14g9,02l0,61se|(8 plot)|0.0f
+13	411	22218	Sage3	Z
+13	412	22222	Heath3	@[Sage3] |8g,97,87,bi,9s,s8,61|(9 plot)|8.7f
+13	413	22688	Dune2	z
+13	414	22692	Heath3	@[Dune2] |3n,ku,61|(0 plot)|0.0f
+13	415	22805	Dune2	Z
+13	416	22809	Heath3	@[Dune2] |3n,68,59|(0 plot)|8.3f
+13	422	23052	Rowan3	Z
+13	423	24001	Dune2	Z
+13	424	24004	Heath3	@[Dune2] |3n,61|(3 plot)|0.7f
+13	425	24049	Rowan3	Z
+13	426	25174	Dune2	Z
+13	427	25513	Tansy2	Z
+13	428	25515	Heath3	@[Tansy2] |47,s3,61|(0 plot)|3.3f
+13	430	25881	Tansy2	Z
+13	431	25882	Reed	/s
+13	432	25886	Heath3	@[Tansy2] |47,9s,0s,59|(8 plot)|0.0f
+13	433	25887	Kestrel3	@[Reed] 0L: Titagezoudrum-GU ?\n3G: Drip Voubodi ?\n9S: BO25BO ?\nS8:  BRONU RE ?\nG3: G3P ?
+13	436	25931	Thistle3	Z
+13	438	26040	Tansy2	S
+13	439	26069	Tansy2	Z
+13	440	26073	Reed	Z
+13	441	26074	Heath3	@[Tansy2] |47,s7,8l,61|(8 plot)|0.9f
+13	442	26081	Heath3	@[Reed] |13,s3,r0,3s,9s,86,0s,59|(2 plot)|0.2f
+13	443	26097	Thistle3	Z
+13	444	26104	Heath3	@[Thistle3] |08s0gr,85s972,65l572,41p8me,893l44,61lup0|(0 plot)|9.7f
+13	445	26195	Umber3	Z
+13	446	26200	Heath3	@[Umber3] |0s9g,s9s0,73s0,106n,fl62,61se|(0 plot)|8.8f
+13	447	26255	Tansy2	Z
+13	449	26854	Tansy2	Z
+13	450	26857	Heath3	@[Tansy2] |47,s3,9p,44,59|(6 plot)|3.0f
+13	461	27794	Kestrel2	Kous
+13	462	27799	Heath3	@[Kestrel2] |2r,42,r9,18,lu,59|(0 plot)|8.2f
+13	463	27812	Kestrel2	Grit
+13	464	27818	Heath3	2R: Donedrea - D.  Za... \n42: D. Moumigre Feafasta \nLE: faflu.su Totr Kai... \n8P: Plurume Feafasta \n61: Pa. Nafiso - Plit...
+13	467	28817	Reed	Grit
+13	468	28821	Heath3	47: VEATRE.BIM-Sifan \n47: VEATRE.BIM-Sifan \n61: Pa. Nafiso - Plit...
+13	469	28891	Tansy2	Grit
+13	471	29235	Hazel	@[Tansy2] 47,61,87
+13	472	29417	Kestrel2	Grit
+13	473	29421	Heath3	R9: Nu Mougreg Zifi \nVI: poupebr\n61: Pa. Nafiso - Plit...
+13	474	30003	Tansy2	@[Hazel] loudra
+13	475	30048	Larch	kous
+13	476	30284	Larch	kous
+13	477	30641	Larch	kous
+13	478	30686	Heath3	@[Larch] |44,59|(3 plot)|Pamo Mivagr Gugou
+13	479	30709	Vale3	Grit
+13	480	30713	Heath3	LED8: LE-Pearogroubuflo\nS65S: Ladaite\nS889:  BRONU RE\nVOT0: Duda_Betr\n61SE: Pa. Nafiso - Veatre.bim
+13	481	30776	Tansy2	Z
+13	482	30801	Tansy2	Z
+13	483	30804	Heath3	@[Tansy2] |47,25,0s,59|(8 plot)|3.9f
+13	485	30849	Larch	kous
+13	486	30894	Heath3	@[Larch] |73,44,59|(0 plot)|Pamo Mivagr Gugou
+13	492	31792	Dune2	Z
+13	493	31797	Heath3	@[Dune2] |ku6717,2099go,488566,24466n|(8 plot)|8.8f
+13	524	35046	Willow3	z
+13	525	35048	Heath3	@[Willow3] |44,61|(3 plot)|8.0f
+13	526	35201	Willow3	z
+13	527	35216	Willow3	z
+13	528	35220	Heath3	@[Willow3] |87,s7,8l,61|(8 plot)|0.9f
+13	531	35265	Larch	kous
+13	532	35396	Larch	kous
+13	533	35441	Heath3	@[Larch] |37,59|(3 plot)|Pamo Mivagr Gugou
+13	537	35486	Larch	kous
+13	538	35531	Heath3	@[Larch] |l0,61|(3 plot)|Pamo Mivagr Gugou
+13	542	35576	Wren2	gr 32438
+13	543	35578	Heath3	Droubrouk: Gaibof Vuste 05R SA6 13%DR 24 | Fop: Fasev B:07R KE6
+13	544	37188	Yarrow3	S
+13	545	37199	Heath3	...\n41: Zomaip - Veatre.bim \n61: Pa. Nafiso - Plit...

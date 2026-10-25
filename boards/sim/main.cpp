@@ -44,6 +44,13 @@ public:
       }
       return true;
     }
+    if (!strcmp(cmd, "corpus")) {   // corpus <file> <source channel> <slot> [count]
+      char path[200] = {};
+      int src = 0, slot = 0, count = 60;
+      if (sscanf(arg, "%199s %d %d %d", path, &src, &slot, &count) < 3) { snprintf(err, n, "corpus <file> <chan> <slot> [count]"); return true; }
+      if (!_m.loadCorpus(path, src, slot, count)) snprintf(err, n, "no messages for channel %d in %s", src, path);
+      return true;
+    }
     if (!strcmp(cmd, "ble")) {
       if (!strcmp(arg, "pairing")) _m.setPairing(true);
       else { _m.setPairing(false); _m.setBle(!strcmp(arg, "on")); }

@@ -124,7 +124,7 @@ enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_TIME, S_TZ, S_HDR_DISP, S
              S_HDR_DANGER, S_FACTORY, S_N };
 
 // Row -> item: "Trackball", "Lock when screen off" (the trackball's click unlocks) and
-// "Touch scroll" are only there on boards with one (the T-Deck, which is also the touch board).
+// "Touch Scrolling Direction" are only there on boards with one (the T-Deck, which is also the touch board).
 int sItem(int i) { return !MC_HAS_TRACKBALL && i >= S_BALL ? i + 3 : i; }
 
 const uint16_t kTimeouts[] = {0, 15, 30, 60, 120, 300};
@@ -185,7 +185,7 @@ protected:
         snprintf(it.value, sizeof it.value, "%s", yesNo(p.lockOnTimeout));
         break;
       case S_SCROLL:
-        it.label = "Touch scroll"; it.choice = true;
+        it.label = "Touch Scrolling Direction"; it.choice = true;
         snprintf(it.value, sizeof it.value, "%s", p.touchScrollNatural ? "opposite" : "same");
         break;
       case S_LOCKOUT: it.label = "Key filter"; it.choice = true; snprintf(it.value, sizeof it.value, "%u ms", p.inputLockoutMs); break;
@@ -552,7 +552,7 @@ BackupScreen s_backup;
 
 void openMainMenu(App& a) {
   if (a.top() == &s_menu) a.pop();   // Menu again closes it
-  else { s_menu.resetNav(); a.push(&s_menu); }
+  else a.push(&s_menu);   // the cursor stays on the last item
 }
 bool mainMenuOpen(App& a) { return a.top() == &s_menu; }
 void openSettings(App& a) { s_settings.resetNav(); a.push(&s_settings); }

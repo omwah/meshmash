@@ -151,7 +151,7 @@ public:
   int dragSteps(int dy, int step);
   // A drag's vertical pixels as the direction to move (positive: down, toward later items and
   // newer messages). Both lists and conversations use this, so they always agree: with
-  // Settings -> Touch scroll "same" the selection or view moves the way the finger does;
+  // Settings -> Touch Scrolling Direction "same" the selection or view moves the way the finger does;
   // with "opposite" the content follows the finger, so they move the other way.
   int scrollDy(int dy) const { return _m.prefs().touchScrollNatural ? -dy : dy; }
   // Play the new-message colours once (a preview, or an alert).

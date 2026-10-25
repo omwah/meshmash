@@ -122,7 +122,7 @@ Touch:
 - **Rows:** tap to open, hold for details. A heard advert is added on a
   second tap.
 - **Drag** to move through lists and scroll conversations, the same way for both.
-  Settings → Touch scroll: *same* (default) moves the selection or view the way the
+  Settings → Touch Scrolling Direction: *same* (default) moves the selection or view the way the
   finger goes, as j/k do (drag up for older messages, which load at the top);
   *opposite* has the content follow the finger instead (drag down for older).
   The header names the tab; there's no tab strip, the bar is the tabs. **Swipe sideways** on Home to change tabs.

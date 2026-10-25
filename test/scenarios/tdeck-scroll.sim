@@ -1,7 +1,8 @@
-# Touch scroll: a drag moves lists and conversations the same way. Same (the
+# Touch Scrolling Direction: a drag moves lists and conversations the same way. Same (the
 # default): the selection and the view move the way the finger does, down is
 # toward later items and newer messages. Opposite: the content follows the
-# finger, so each goes the other way. A list drag is one row for 24 px.
+# finger, so each goes the other way. A list drag is one row of the list's own height (35 px for chats here), so
+# with Opposite the list follows the finger.
 vim on
 repeat 14 100 rx dm 0 Message number # in a long conversation, long enough to scroll
 wait 300
@@ -21,19 +22,19 @@ shot opposite-chat-finger-up
 swipe 160 110 160 170 300
 shot opposite-chat-finger-down
 tap 10 8
-# Lists: from the third row, drag 48 px (two rows) down, then 24 px up.
+# Lists: from the third row, drag 70 px (two rows) down, then 35 px up.
 pref scroll same
 key down 2
 shot same-list-start
-swipe 160 100 160 148 300
+swipe 160 100 160 170 300
 shot same-list-finger-down
-swipe 160 148 160 124 300
+swipe 160 170 160 135 300
 shot same-list-finger-up
 pref scroll opposite
 key up 2
 key down 2
 shot opposite-list-start
-swipe 160 100 160 148 300
+swipe 160 100 160 170 300
 shot opposite-list-finger-down
-swipe 160 148 160 124 300
+swipe 160 170 160 135 300
 shot opposite-list-finger-up

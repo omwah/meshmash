@@ -64,6 +64,14 @@ struct Thread {
 
 enum class Delivery : uint8_t { None, Pending, Sent, Delivered, Failed };
 
+// How many bytes of a message's route are kept: the T-Deck keeps up to 32 (32 relays with one-byte
+// hashes), where a record cannot grow, the Cardputer 6.
+#ifdef MC_LONG_PATH
+constexpr int PATH_BYTES = 32;
+#else
+constexpr int PATH_BYTES = 6;
+#endif
+
 struct Message {
   uint32_t ts;                    // epoch seconds: when it arrived here (when it was sent, if ours)
   bool skewKnown;                 // incoming: `skew` is set (this device's clock was set when it arrived)
@@ -77,7 +85,7 @@ struct Message {
   uint32_t seq;                   // order in the history (newer is higher), 0 unknown
   uint8_t pathSize;               // incoming: bytes per relay hash in `path` (0: the path is not known)
   uint8_t pathN;                  // relay hashes in `path` (the first ones, if the route was longer than fits)
-  uint8_t path[6];                // incoming: the relays it passed, first relay first
+  uint8_t path[PATH_BYTES];       // incoming: the relays it passed, first relay first
   char sender[NAME_LEN];          // channel messages: who sent it
   char text[TEXT_LEN];
 };

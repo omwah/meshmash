@@ -1,0 +1,10 @@
+# A message that passed nine relays: the details list them all, and scroll.
+vim on
+rx chan 0 Farid Haddad|Net check-in at 19:00 tonight
+wait 300
+key enter
+key l
+key enter
+shot route-long
+key down 6
+shot route-long-end

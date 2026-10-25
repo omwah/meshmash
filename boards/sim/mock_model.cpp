@@ -106,7 +106,7 @@ MockModel::MockModel() {
   addMsg(pub, t - 3000, false, "Grace Park", "Anyone hearing me from the north side?", 6, 1, Delivery::None);
   addMsg(pub, t - 2900, true, "", "Loud and clear via Hilltop, -2 dB here.", 0, 0, Delivery::Sent);
   _msgs[_nMsgs - 1].m.repeats = 3;
-  addMsg(pub, t - 400, false, "Farid Haddad", "Net check-in at 19:00 tonight on #local.", -20, 4, Delivery::None);
+  addMsg(pub, t - 400, false, "Farid Haddad", "Net check-in at 19:00 tonight on #local.", -20, 9, Delivery::None);
 
   addMsg(loc, t - 7000, false, "Carmen Ortiz", "Trail is muddy past the second bridge.", -14, 3, Delivery::None);
   addMsg(loc, t - 6800, false, "Alice Kestrel", "Thanks! Bringing boots.", 22, 1, Delivery::None);
@@ -202,10 +202,11 @@ void MockModel::addMsg(ThreadId t, uint32_t ts, bool out, const char* sender, co
   m.m.snr_x4 = out ? INT8_MIN : snr_x4;
   m.m.hops = hops;
   if (!out && hops > 0) {   // a made-up route: Hilltop (a1), then others
-    static const uint8_t kRelays[6] = {0xA1, 0x7F, 0x3C, 0xD2, 0x09, 0xEE};
+    static const uint8_t kRelays[12] = {0xA1, 0x7F, 0x3C, 0xD2, 0x09, 0xEE, 0x41, 0x68, 0xB7, 0x02, 0xC9, 0x55};
+    const int keep = (int)sizeof m.m.path < 12 ? (int)sizeof m.m.path : 12;   // as many as a message keeps
     m.m.pathSize = 1;
-    m.m.pathN = (uint8_t)(hops > 6 ? 6 : hops);
-    memcpy(m.m.path, kRelays, 6);
+    m.m.pathN = (uint8_t)(hops > keep ? keep : hops);
+    memcpy(m.m.path, kRelays, keep);
   }
   snprintf(m.m.sender, sizeof m.m.sender, "%s", sender);
   snprintf(m.m.text, sizeof m.m.text, "%s", text);
@@ -469,7 +470,8 @@ void MockModel::rxDirect(int c, const char* text) {
 
 void MockModel::rxChannel(int slot, const char* sender, const char* text) {
   ThreadId t{ThreadKind::Channel, (uint16_t)slot};
-  addMsg(t, now(), false, sender, text, -6, 2, Delivery::None);
+  // A sender called Far... is nine relays away: for the long-route screenshot.
+  addMsg(t, now(), false, sender, text, -6, strncmp(sender, "Far", 3) ? 2 : 9, Delivery::None);
   if (!chanMuted(slot)) threadFor(t)->hidden = false;
   threadFor(t)->unread++;
 }

@@ -135,7 +135,7 @@ private:
   struct {                           // the path of the last DM or channel packet heard: for the message that follows
     bool valid;
     uint8_t pathLen;
-    uint8_t path[6];
+    uint8_t path[model::PATH_BYTES];
   } _rxPath = {};
   void noteSenderClock(model::Message& m, uint32_t senderTs);
   void attachPath(model::Message& m, uint8_t pathLen);

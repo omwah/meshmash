@@ -16,7 +16,51 @@ struct __attribute__((packed)) MessageStore::Rec {
   uint32_t ack;          // outgoing: its ack; incoming: with retries and repeats, 6 bytes of path (see packPath)
   char sender[24];
   char text[model::TEXT_LEN];
+#ifdef MC_LONG_PATH
+  uint8_t path[model::PATH_BYTES];   // incoming: the relays it passed (flag bit 1: stored; bits 2-3: hash size - 1)
+#endif
 };
+static_assert(sizeof(MessageStore::Rec) == MessageStore::RECORD_BYTES, "record size");
+
+#ifdef MC_LONG_PATH
+// Records written before the route had a field of its own are 209 bytes: the same fields, with an
+// incoming message's first six route bytes packed into ack, retries and repeats. They are converted
+// when a ring file is rebuilt and when an archive file is first used.
+static constexpr size_t kOldRec = 209;
+static void upgrade(const uint8_t* old, MessageStore::Rec& r) {
+  memset(&r, 0, sizeof r);
+  memcpy(&r, old, kOldRec);
+  if (!(r.flags & 1) && (r.flags & 2)) {
+    memcpy(r.path, &r.ack, 4);
+    r.path[4] = r.retries;
+    r.path[5] = r.repeats;
+    r.ack = 0;
+    r.retries = r.repeats = 0;
+  }
+}
+#endif
+
+// The record size of a ring file (or of one being adopted): the current one, or the old one.
+static size_t srcRecSize(size_t fileSize) {
+#ifdef MC_LONG_PATH
+  if (fileSize != (size_t)MessageStore::CAPACITY * sizeof(MessageStore::Rec) && fileSize % kOldRec == 0) return kOldRec;
+#endif
+  return sizeof(MessageStore::Rec);
+}
+
+// Record at byte `at` of a file whose records are `rs` bytes, in the current layout.
+static bool readSrc(File& f, size_t at, size_t rs, MessageStore::Rec& r) {
+  if (!f.seek(at)) return false;
+  if (rs == sizeof r) return f.read((uint8_t*)&r, sizeof r) == sizeof r;
+#ifdef MC_LONG_PATH
+  uint8_t buf[kOldRec];
+  if (rs != kOldRec || f.read(buf, kOldRec) != (int)kOldRec) return false;
+  upgrade(buf, r);
+  return true;
+#else
+  return false;
+#endif
+}
 
 // An incoming message has no delivery status either, so those 8 bits and 4 flag bits hold how far
 // the sender's clock was from ours: known (1 bit), sign, a unit (minutes, hours, days, weeks) and
@@ -41,11 +85,15 @@ static int32_t unpackSkew(uint16_t code) {
 // relays it passed (records from before this stay readable: no flag, no path).
 void MessageStore::packPath(Rec& r, const model::Message& m) {
   if (!m.pathSize || !m.pathN) return;
+#ifdef MC_LONG_PATH
+  memcpy(r.path, m.path, sizeof r.path);
+#else
   uint8_t b[6] = {};
   memcpy(b, m.path, sizeof b);
   memcpy(&r.ack, b, 4);
   r.retries = b[4];
   r.repeats = b[5];
+#endif
   r.flags |= 2 | (uint8_t)((m.pathSize - 1) << 2);
 }
 
@@ -53,14 +101,18 @@ void MessageStore::unpackPath(const Rec& r, model::Message& m) {
   m.retries = m.repeats = 0;
   m.status = model::Delivery::None;
   if (!(r.flags & 2)) return;
+#ifdef MC_LONG_PATH
+  memcpy(m.path, r.path, sizeof m.path);
+#else
   uint8_t b[6];
   memcpy(b, &r.ack, 4);
   b[4] = r.retries;
   b[5] = r.repeats;
   memcpy(m.path, b, sizeof b);
+#endif
   m.pathSize = (uint8_t)(((r.flags >> 2) & 3) + 1);
   int n = m.hops > 0 ? m.hops : 0;
-  m.pathN = (uint8_t)(n * m.pathSize > (int)sizeof b ? sizeof b / m.pathSize : n);
+  m.pathN = (uint8_t)(n * m.pathSize > (int)sizeof m.path ? sizeof m.path / m.pathSize : n);
 }
 
 bool ThreadKey::operator==(const ThreadKey& o) const { return kind == o.kind && !memcmp(id, o.id, 6); }
@@ -97,7 +149,8 @@ void MessageStore::fitRing() {
   File f = _fs->exists(_file) ? _fs->open(_file, "r") : File();
   if (!f) return;
   const size_t want = (size_t)CAPACITY * sizeof(Rec), have = f.size();
-  if (!have || have == want || have % sizeof(Rec)) { f.close(); return; }
+  const size_t rs = srcRecSize(have);
+  if (!have || have == want || have % rs) { f.close(); return; }
   f.close();
   if (rebuildRing()) return;   // through the card: the old file goes before the new one is written
   f = _fs->open(_file, "r");
@@ -114,8 +167,8 @@ void MessageStore::fitRing() {
   o = ok ? _fs->open(tmp, "r+") : File();
   ok = ok && (bool)o;
   uint32_t moved = 0;
-  for (size_t at = 0; ok && at < have; at += sizeof(Rec)) {
-    if (!f.seek(at) || f.read((uint8_t*)&r, sizeof r) != sizeof r) { ok = false; break; }
+  for (size_t at = 0; ok && at < have; at += rs) {
+    if (!readSrc(f, at, rs, r)) { ok = false; break; }
     if (!r.seq) continue;
     uint32_t pos = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
     ok = o.seek(pos) && o.read((uint8_t*)&occ, sizeof occ) == sizeof occ;
@@ -147,7 +200,8 @@ bool MessageStore::rebuildRing() {
   File f = _fs->exists(_file) ? _fs->open(_file, "r") : File();
   if (!f) return false;
   const size_t have = f.size(), want = (size_t)CAPACITY * sizeof(Rec);
-  if (!have || have % sizeof(Rec)) { f.close(); return false; }
+  const size_t rs = srcRecSize(have);
+  if (!have || have % rs) { f.close(); return false; }
   const char* tmp = "/meshmash/ring.tmp";
   _sd->mkdir("/meshmash");
   _sd->remove(tmp);
@@ -160,8 +214,8 @@ bool MessageStore::rebuildRing() {
   o = ok ? _sd->open(tmp, "r+") : File();
   ok = ok && (bool)o;
   uint32_t moved = 0;
-  for (size_t at = 0; ok && at < have; at += sizeof(Rec)) {
-    if (!f.seek(at) || f.read((uint8_t*)&r, sizeof r) != sizeof r) { ok = false; break; }
+  for (size_t at = 0; ok && at < have; at += rs) {
+    if (!readSrc(f, at, rs, r)) { ok = false; break; }
     if (!r.seq) continue;
     uint32_t pos = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
     ok = o.seek(pos) && o.read((uint8_t*)&occ, sizeof occ) == sizeof occ;
@@ -254,7 +308,8 @@ void MessageStore::adoptFrom(fs::FS* flash, const char* tag) {
   const size_t want = (size_t)CAPACITY * sizeof(Rec);
   if (flash->exists(fr)) {
     File src = flash->open(fr, "r");
-    bool ok = src && src.size() % sizeof(Rec) == 0;
+    const size_t rs = src ? srcRecSize(src.size()) : sizeof(Rec);
+    bool ok = src && src.size() % rs == 0;
     if (ok && !_fs->exists(_file)) {   // no ring on the card yet: an empty one
       Rec z;
       memset(&z, 0, sizeof z);
@@ -267,8 +322,8 @@ void MessageStore::adoptFrom(fs::FS* flash, const char* tag) {
     ok = ok && o && o.size() == want;
     Rec r, occ;
     uint32_t moved = 0;
-    for (size_t at = 0; ok && at < src.size(); at += sizeof(Rec)) {
-      if (!src.seek(at) || src.read((uint8_t*)&r, sizeof r) != sizeof r) { ok = false; break; }
+    for (size_t at = 0; ok && at < src.size(); at += rs) {
+      if (!readSrc(src, at, rs, r)) { ok = false; break; }
       if (!r.seq) continue;
       uint32_t pos = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
       ok = o.seek(pos) && o.read((uint8_t*)&occ, sizeof occ) == sizeof occ;
@@ -335,6 +390,18 @@ bool MessageStore::begin(fs::FS* fs, const char* tag, fs::FS* flash) {
 #endif
   loadRead();
   loadHidden();
+  {
+    // A ring that could not be brought to this build's record size is put aside, not misread.
+    File chk = _fs->exists(_file) ? _fs->open(_file, "r") : File();
+    size_t sz = chk ? chk.size() : 0;
+    if (chk) chk.close();
+    if (sz && (sz % sizeof(Rec) || sz > (size_t)CAPACITY * sizeof(Rec))) {
+      char old[44];
+      snprintf(old, sizeof old, "%s.old", _file);
+      _fs->remove(old);
+      _fs->rename(_file, old);
+    }
+  }
   File f = _fs->open(_file, "r");
   if (f) {
     Rec r;
@@ -566,13 +633,49 @@ void MessageStore::toMessage(const Rec& r, model::Message& m) {
 // ---- archive (SD card)
 
 void MessageStore::archivePath(const ThreadKey& k, char* out, int n) const {
-  snprintf(out, n, "%s/%c%02x%02x%02x%02x%02x%02x.bin", _archDir, k.kind ? 'c' : 'd', k.id[0], k.id[1], k.id[2],
-           k.id[3], k.id[4], k.id[5]);
+#ifdef MC_LONG_PATH
+  const char* ext = "m2";   // records with the whole route; the old ones were .bin
+#else
+  const char* ext = "bin";
+#endif
+  snprintf(out, n, "%s/%c%02x%02x%02x%02x%02x%02x.%s", _archDir, k.kind ? 'c' : 'd', k.id[0], k.id[1], k.id[2],
+           k.id[3], k.id[4], k.id[5], ext);
+}
+
+// The archive file of a conversation; an older one (209-byte records) is converted the first time.
+void MessageStore::archiveFile(const ThreadKey& k, char* out, int n) {
+  archivePath(k, out, n);
+#ifdef MC_LONG_PATH
+  if (!_sd || _sd->exists(out)) return;
+  char old[64];
+  snprintf(old, sizeof old, "%.*sbin", (int)strlen(out) - 2, out);   // ...m2 -> ...bin
+  if (!_sd->exists(old)) return;
+  File a = _sd->open(old, "r");
+  File b = a && a.size() % kOldRec == 0 ? _sd->open(out, "w", true) : File();
+  bool ok = a && b;
+  uint8_t buf[kOldRec];
+  Rec r;
+  size_t count = 0;
+  while (ok && a.read(buf, kOldRec) == (int)kOldRec) {
+    upgrade(buf, r);
+    ok = b.write((const uint8_t*)&r, sizeof r) == sizeof r;
+    count++;
+  }
+  if (a) a.close();
+  if (b) b.close();
+  if (ok) {
+    File chk = _sd->open(out, "r");
+    ok = chk && chk.size() == count * sizeof(Rec);
+    if (chk) chk.close();
+  }
+  if (ok) _sd->remove(old);
+  else _sd->remove(out);   // the old file stays, and is tried again next time
+#endif
 }
 
 bool MessageStore::archive(const Rec& r) {
   char path[64];
-  archivePath(r.key, path, sizeof path);
+  archiveFile(r.key, path, sizeof path);
   _sd->mkdir("/meshmash");
   _sd->mkdir("/meshmash/history");
   _sd->mkdir(_archDir);
@@ -618,7 +721,7 @@ int MessageStore::findSeqs(const ThreadKey& k, uint32_t from, bool older, uint32
   }
   if (older && n < max && _sd) {
     char path[64];
-    archivePath(k, path, sizeof path);
+    archiveFile(k, path, sizeof path);
     File a = _sd->exists(path) ? _sd->open(path, "r") : File();
     if (a) {
       while (a.read((uint8_t*)&r, sizeof r) == sizeof r)
@@ -637,7 +740,7 @@ bool MessageStore::loadSeq(const ThreadKey& k, uint32_t seq, model::Message& m) 
   }
   if (!_sd) return false;
   char path[64];
-  archivePath(k, path, sizeof path);
+  archiveFile(k, path, sizeof path);
   File a = _sd->exists(path) ? _sd->open(path, "r") : File();
   bool found = false;
   while (a && !found && a.read((uint8_t*)&r, sizeof r) == sizeof r)
@@ -672,7 +775,7 @@ int MessageStore::history(const ThreadKey& k, uint32_t upTo, model::Message* out
   }
   if (got < n && _sd) {
     char path[64];
-    archivePath(k, path, sizeof path);
+    archiveFile(k, path, sizeof path);
     File a = _sd->exists(path) ? _sd->open(path, "r") : File();
     if (a) {
       while (a.read((uint8_t*)&r, sizeof r) == sizeof r) take(r);
@@ -741,6 +844,10 @@ void MessageStore::clear(const ThreadKey& k) {
     char path[64];
     archivePath(k, path, sizeof path);
     _sd->remove(path);
+#ifdef MC_LONG_PATH
+    snprintf(path + strlen(path) - 2, 4, "bin");   // an older archive file not converted yet
+    _sd->remove(path);
+#endif
   }
   if (_hasOpen && _open == k) _nCache = 0;
   forget(k);

@@ -39,6 +39,12 @@ public:
 #ifndef MSG_RING_RECORDS
 #define MSG_RING_RECORDS 512
 #endif
+  struct Rec;   // one stored message (public so the file helpers can name it)
+#ifdef MC_LONG_PATH
+  static constexpr int RECORD_BYTES = 209 + model::PATH_BYTES;   // one stored message (the route follows the text)
+#else
+  static constexpr int RECORD_BYTES = 209;
+#endif
   static constexpr int CAPACITY = MSG_RING_RECORDS;   // records kept on flash (512: ~108 KB)
   static constexpr int MAX_THREADS = 40;
   static constexpr int MAX_HIDDEN = 32;
@@ -104,10 +110,10 @@ public:
   void wipe();
 
 private:
-  struct Rec;
   bool readRec(int slot, Rec& r);
   bool rebuildRing();
   void adoptFrom(fs::FS* flash, const char* tag);
+  void archiveFile(const ThreadKey& k, char* out, int n);   // the path, with an older archive file converted
   void fitRing();   // an older ring file of another size: move its records into this size
   bool archive(const Rec& r);
   void archivePath(const ThreadKey& k, char* out, int n) const;

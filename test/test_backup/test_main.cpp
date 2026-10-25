@@ -191,7 +191,7 @@ static void refit(bool withCard) {
   TEST_ASSERT_TRUE(st.begin(&f.flash));
   TEST_ASSERT_EQUAL(OLD, (int)st.stats().resized);
   File check = f.flash.open("/ui/msgs.bin", "r");
-  TEST_ASSERT_EQUAL((int)(app::MessageStore::CAPACITY * RS), (int)check.size());
+  TEST_ASSERT_EQUAL((int)(app::MessageStore::CAPACITY * app::MessageStore::RECORD_BYTES), (int)check.size());
   check.close();
   TEST_ASSERT_FALSE(f.flash.exists("/ui/msgs.bin.new"));
   TEST_ASSERT_FALSE(f.sd.exists("/meshmash/ring.tmp"));
@@ -304,9 +304,72 @@ void test_sender_clock_offset_is_kept() {
   TEST_ASSERT_FALSE(again.at(n).skewKnown);
 }
 
+// A message keeps its whole route, and records written before that (209 bytes, six route bytes packed
+// into other fields) are converted: the ring when it is rebuilt, an archive file when it is first used.
+void test_the_whole_route_is_kept() {
+  Fixture f;
+  app::MessageStore st;
+  TEST_ASSERT_TRUE(st.begin(&f.flash));
+  app::ThreadKey k = app::ThreadKey::channel(0);
+  model::Message m = {};
+  m.ts = 1792900000;
+  m.hops = 20;
+  m.pathSize = 1;
+  m.pathN = 20;
+  for (int i = 0; i < 20; i++) m.path[i] = (uint8_t)(0x10 + i);
+  snprintf(m.sender, sizeof m.sender, "Someone");
+  snprintf(m.text, sizeof m.text, "long way round");
+  TEST_ASSERT_NOT_EQUAL(0, st.append(k, m));
+  app::MessageStore again;   // from the file
+  TEST_ASSERT_TRUE(again.begin(&f.flash));
+  again.open(k);
+  const model::Message& r = again.at(0);
+  TEST_ASSERT_EQUAL(1, r.pathSize);
+  TEST_ASSERT_EQUAL(20, r.pathN);
+  for (int i = 0; i < 20; i++) TEST_ASSERT_EQUAL_UINT8(0x10 + i, r.path[i]);
+}
+
+void test_an_old_archive_file_is_converted() {
+  Fixture f;
+  std::string old;   // three 209-byte records in the old layout, the second with a packed route
+  for (uint32_t seq = 1; seq <= 3; seq++) {
+    std::string rec(209, '\0');
+    memcpy(&rec[0], &seq, 4);
+    rec[4] = 1;   // channel 0
+    if (seq == 2) {
+      rec[11] = 2;        // flags: the route is stored, one-byte hashes
+      rec[16] = 3;        // hops
+      const uint8_t b[6] = {1, 2, 3, 4, 5, 6};
+      memcpy(&rec[21], b, 4);   // ack
+      rec[13] = (char)b[4];     // retries
+      rec[14] = (char)b[5];     // repeats
+    }
+    snprintf(&rec[25], 24, "Person");
+    snprintf(&rec[49], 160, "old %u", seq);
+    old += rec;
+  }
+  f.sd.mkdir("/meshmash");
+  f.sd.mkdir("/meshmash/history");
+  writeFile(f.sd, "/meshmash/history/c000000000000.bin", old);
+  app::MessageStore st;
+  st.setArchive(&f.sd);
+  TEST_ASSERT_TRUE(st.begin(&f.flash));
+  model::Message out[8];
+  TEST_ASSERT_EQUAL(3, st.history(app::ThreadKey::channel(0), 3, out, 8));
+  TEST_ASSERT_EQUAL_UINT32(2, out[1].seq);
+  TEST_ASSERT_EQUAL(3, out[1].pathN);
+  TEST_ASSERT_EQUAL_UINT8(1, out[1].path[0]);
+  TEST_ASSERT_EQUAL_UINT8(3, out[1].path[2]);
+  TEST_ASSERT_FALSE(f.sd.exists("/meshmash/history/c000000000000.bin"));
+  TEST_ASSERT_TRUE(f.sd.exists("/meshmash/history/c000000000000.m2"));
+  TEST_ASSERT_EQUAL(3 * app::MessageStore::RECORD_BYTES, (int)f.sd.open("/meshmash/history/c000000000000.m2", "r").size());
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_round_trip);
+  RUN_TEST(test_the_whole_route_is_kept);
+  RUN_TEST(test_an_old_archive_file_is_converted);
   RUN_TEST(test_sender_clock_offset_is_kept);
   RUN_TEST(test_message_time_is_the_devices_once_set);
   RUN_TEST(test_history_moves_to_the_card);

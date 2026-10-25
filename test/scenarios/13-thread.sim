@@ -1,0 +1,38 @@
+# Picking a message: details (route and relays), reply with @[Name], Tab completion of a
+# name, and a thread found by following mentions back, from which Enter jumps into the chat.
+vim on
+rx chan 0 Grace Park|Anyone up for the net tonight?
+rx chan 0 Grace Park|I can host if nobody else wants to
+rx chan 0 Ridge 900|Pretty quiet up here
+rx chan 0 Bob|@[Grace Park] count me in
+rx chan 0 Ridge 900|@[Bob] bring a spare battery
+wait 300
+key enter
+shot thread-chat
+# Right picks the message at the bottom; Enter shows what is known about it.
+key l
+shot thread-picked
+key enter
+shot thread-details
+key esc
+# t: the thread of the picked message (Bob's reply, and Ridge's before it, and Grace's before that).
+key t
+shot thread-view
+key up
+shot thread-view-up
+# Enter goes to that message in the whole chat.
+key enter
+shot thread-jumped
+# r: reply to whoever wrote the picked message.
+key r
+shot thread-reply
+type thanks
+key enter
+# Tab completes a name after @.
+key i
+type @Ri
+key tab
+shot thread-tab
+key tab
+shot thread-tab-next
+key esc

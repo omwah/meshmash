@@ -60,6 +60,11 @@ public:
   // Multi-line variant: wraps, shows the last lines that fit in h.
   void drawWrapped(App& app, Canvas& c, const Rect& r, const mc_font_t* f, uint8_t fg);
   int length() const { return (int)strlen_(_buf); }
+  int cursor() const { return _cur; }
+  const char* text() const { return _buf; }
+  // Replace the text from byte `from` up to the cursor with `s` (the cursor ends after it);
+  // false, changing nothing, if it would not fit.
+  bool replaceBefore(int from, const char* s);
 
 private:
   static int strlen_(const char* s) { int n = 0; while (s[n]) n++; return n; }

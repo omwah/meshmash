@@ -215,6 +215,15 @@ bool LineEditor::key(const Key& k) {
   return false;
 }
 
+bool LineEditor::replaceBefore(int from, const char* s) {
+  int len = length(), n = (int)strlen(s);
+  if (from < 0 || from > _cur || len - (_cur - from) + n + 1 > _cap) return false;
+  memmove(_buf + from + n, _buf + _cur, len - _cur + 1);
+  memcpy(_buf + from, s, n);
+  _cur = from + n;
+  return true;
+}
+
 void LineEditor::draw(App& app, Canvas& c, int x, int y, int w, const mc_font_t* f, uint8_t fg, bool secret) {
   // Count code points before the cursor and in total.
   int before = 0, total = 0;

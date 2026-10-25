@@ -22,7 +22,7 @@ public:
   bool hasUnlockButton() const override { return true; }
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }
   bool lockPressed() override { bool l = _lock; _lock = false; return l; }
-  void setLocked(bool locked) override { _locked = locked; }
+  void setLocked(bool locked) override;
   // The screen is off: scan the keys less often (a press still wakes it).
   void setSlow(bool slow) { _scanMs = slow ? 50 : 20; }
   // A worn trackball can roll by itself: off, its rolls are ignored (the

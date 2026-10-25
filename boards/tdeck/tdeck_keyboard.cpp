@@ -148,6 +148,16 @@ void TDeckKeyboard::click() {
   }
 }
 
+// Locking puts the key light out at once, not when its time runs out (and drops a
+// notification blink in progress).
+void TDeckKeyboard::setLocked(bool locked) {
+  _locked = locked;
+  if (!locked) return;
+  _lastKey = 0;
+  _notify = 0;
+  light();
+}
+
 void TDeckKeyboard::light() {
   if (!_ok) return;
   bool on = _lightLevel && _lightSec && _lastKey && millis() - _lastKey < _lightSec * 1000u;

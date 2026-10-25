@@ -8,14 +8,40 @@ namespace app {
 struct __attribute__((packed)) MessageStore::Rec {
   uint32_t seq;          // 0 = empty slot
   ThreadKey key;
-  uint8_t flags;         // bit0 outgoing
+  uint8_t flags;         // bit0 outgoing, bit1 the incoming path is stored, bits 2-3 its hash size - 1
   uint8_t status, retries, repeats;
   int8_t snr_x4, hops;
   uint32_t ts;
-  uint32_t ack;
+  uint32_t ack;          // outgoing: its ack; incoming: with retries and repeats, 6 bytes of path (see packPath)
   char sender[24];
   char text[model::TEXT_LEN];
 };
+
+// An incoming message has no ack, retries or repeats, so those six bytes hold the
+// relays it passed (records from before this stay readable: no flag, no path).
+void MessageStore::packPath(Rec& r, const model::Message& m) {
+  if (!m.pathSize || !m.pathN) return;
+  uint8_t b[6] = {};
+  memcpy(b, m.path, sizeof b);
+  memcpy(&r.ack, b, 4);
+  r.retries = b[4];
+  r.repeats = b[5];
+  r.flags |= 2 | (uint8_t)((m.pathSize - 1) << 2);
+}
+
+void MessageStore::unpackPath(const Rec& r, model::Message& m) {
+  m.retries = m.repeats = 0;
+  m.status = model::Delivery::None;
+  if (!(r.flags & 2)) return;
+  uint8_t b[6];
+  memcpy(b, &r.ack, 4);
+  b[4] = r.retries;
+  b[5] = r.repeats;
+  memcpy(m.path, b, sizeof b);
+  m.pathSize = (uint8_t)(((r.flags >> 2) & 3) + 1);
+  int n = m.hops > 0 ? m.hops : 0;
+  m.pathN = (uint8_t)(n * m.pathSize > (int)sizeof b ? sizeof b / m.pathSize : n);
+}
 
 bool ThreadKey::operator==(const ThreadKey& o) const { return kind == o.kind && !memcmp(id, o.id, 6); }
 
@@ -166,6 +192,7 @@ uint32_t MessageStore::append(const ThreadKey& k, const model::Message& m, uint3
   r.hops = m.hops;
   r.ts = m.ts;
   r.ack = ack;
+  if (!m.outgoing) packPath(r, m);
   snprintf(r.sender, sizeof r.sender, "%s", m.sender);
   snprintf(r.text, sizeof r.text, "%s", m.text);
   // Is the open window showing this conversation's newest message? (Checked
@@ -281,6 +308,7 @@ void MessageStore::toMessage(const Rec& r, model::Message& m) {
   m.snr_x4 = r.snr_x4;
   m.hops = r.hops;
   m.seq = r.seq;
+  if (!m.outgoing) unpackPath(r, m);
   snprintf(m.sender, sizeof m.sender, "%s", r.sender);
   snprintf(m.text, sizeof m.text, "%s", r.text);
 }

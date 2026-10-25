@@ -2,6 +2,7 @@
 // screenshot tests. All names and keys are fictional.
 #pragma once
 #include "model/model.h"
+#include <stdio.h>
 
 namespace sim {
 
@@ -98,6 +99,11 @@ public:
   bool bleConnected() const override { return _ble; }
   bool bleAvailable() const override { return true; }
   bool pingBotAvailable() const override { return true; }
+  bool relayName(const uint8_t* hash, int size, char* out, int n) const override {
+    if (size != 1 || hash[0] != 0xA1) return false;
+    snprintf(out, n, "Hilltop");
+    return true;
+  }
   uint32_t bleActivePin() const override { return _prefs.blePinRandom ? 482913 : _prefs.blePin; }
   bool blePairing() const override { return _pairing; }
   void setPairing(bool on) { _pairing = on; _rev++; }

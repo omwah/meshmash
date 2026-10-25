@@ -86,6 +86,7 @@ public:
   bool bleAvailable() const override { return _bleBuilt; }
   bool pingBotAvailable() const override { return true; }
   uint32_t bleActivePin() const override { return _activePin; }
+  bool relayName(const uint8_t* hash, int size, char* out, int n) const override;
   bool blePairing() const override { return _bleBuilt && _plat.blePairing(); }
   // The PIN for this boot (fixed, or new random if so set); call once,
   // before starting the Bluetooth interface.
@@ -131,6 +132,12 @@ private:
     uint8_t src, pathLen;
     uint8_t path[MAX_PATH_SIZE];
   } _dmPath = {};
+  struct {                           // the path of the last DM or channel packet heard: for the message that follows
+    bool valid;
+    uint8_t pathLen;
+    uint8_t path[6];
+  } _rxPath = {};
+  void attachPath(model::Message& m, uint8_t pathLen);
   struct PingAnswered { uint8_t key[6]; uint32_t at; };
   PingAnswered _answered[4] = {};
   struct {                           // the reply waiting to go

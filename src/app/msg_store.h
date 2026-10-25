@@ -93,6 +93,8 @@ private:
   int findSeqs(const ThreadKey& k, uint32_t from, bool older, uint32_t* out, int max);
   bool loadSeq(const ThreadKey& k, uint32_t seq, model::Message& m);
   static void toMessage(const Rec& r, model::Message& m);
+  static void packPath(Rec& r, const model::Message& m);
+  static void unpackPath(const Rec& r, model::Message& m);
   bool writeRec(const Rec& r);
   ThreadInfo* touch(const ThreadKey& k);
   void sortThreads();

@@ -73,6 +73,9 @@ struct Message {
   int8_t hops;                    // incoming: path length, -1 direct-unknown
   uint8_t repeats;                // outgoing channel msgs: times heard repeated
   uint32_t seq;                   // order in the history (newer is higher), 0 unknown
+  uint8_t pathSize;               // incoming: bytes per relay hash in `path` (0: the path is not known)
+  uint8_t pathN;                  // relay hashes in `path` (the first ones, if the route was longer than fits)
+  uint8_t path[6];                // incoming: the relays it passed, first relay first
   char sender[NAME_LEN];          // channel messages: who sent it
   char text[TEXT_LEN];
 };
@@ -183,10 +186,10 @@ struct Prefs {
   Mode deviceMode;                // takes effect after a restart
   bool pingBot;                   // answer "ping" DMs with the path they took
   NotifyMode notify;              // what a new message does
+  uint8_t ledBrightness;          // the notification light, 1-255 (the T-Deck's is the key backlight)
   bool shortPreview;              // chats list: scroll only the stored preview, not the whole message
   bool vimKeys;                   // h/j/k/l and friends move around (ui/input/vim.h)
   bool trackball;                 // boards with one: its rolls move (a worn one can be turned off)
-  uint8_t ledBrightness;          // the notification light, 1-255 (the T-Deck's is the key backlight)
   bool touchScrollNatural;        // touch boards: a drag moves the content with the finger (false: the
                                   // selection or view moves with it, as the arrow keys do)
   bool lockOnTimeout;             // boards with an unlock button: when the screen times out, keys and
@@ -342,6 +345,8 @@ public:
   virtual uint32_t bleActivePin() const = 0;              // the PIN in use since boot
   virtual bool blePairing() const = 0;                    // a phone is connected, not yet authenticated
   virtual bool pingBotAvailable() const { return false; } // the local node only
+  // The name of the one repeater or room whose key starts with these `size` bytes (a relay on a path).
+  virtual bool relayName(const uint8_t* hash, int size, char* out, int n) const { (void)hash; (void)size; (void)out; (void)n; return false; }
 
   // Remote mode (the defaults are for a model without it).
   virtual Mode mode() const { return Mode::Local; }

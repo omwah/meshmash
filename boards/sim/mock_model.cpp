@@ -197,6 +197,12 @@ void MockModel::addMsg(ThreadId t, uint32_t ts, bool out, const char* sender, co
   m.m.status = st;
   m.m.snr_x4 = out ? INT8_MIN : snr_x4;
   m.m.hops = hops;
+  if (!out && hops > 0) {   // a made-up route: Hilltop (a1), then others
+    static const uint8_t kRelays[6] = {0xA1, 0x7F, 0x3C, 0xD2, 0x09, 0xEE};
+    m.m.pathSize = 1;
+    m.m.pathN = (uint8_t)(hops > 6 ? 6 : hops);
+    memcpy(m.m.path, kRelays, 6);
+  }
   snprintf(m.m.sender, sizeof m.m.sender, "%s", sender);
   snprintf(m.m.text, sizeof m.m.text, "%s", text);
   threadFor(t);

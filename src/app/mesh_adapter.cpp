@@ -473,6 +473,7 @@ void MeshAdapter::onDirectMessage(const ContactInfo& from, uint8_t txt_type, uin
   m.ts = sender_ts;
   m.snr_x4 = (int8_t)(snr * 4);
   m.hops = hopsOf(path_len);
+  attachPath(m, path_len);
   if (txt_type == TXT_TYPE_SIGNED_PLAIN && extra_len >= 4) {
     // Room server post: extra holds the author's key prefix.
     if (!contactName(extra, 4, m.sender, sizeof m.sender)) hexKey(m.sender, sizeof m.sender, extra, 4);
@@ -482,12 +483,25 @@ void MeshAdapter::onDirectMessage(const ContactInfo& from, uint8_t txt_type, uin
   if (_ui.pingBot && txt_type == TXT_TYPE_PLAIN && isPing(text)) pingReceived(from, path_len, snr);
 }
 
+// The relays a message passed, from the packet heard just before it was decoded
+// (MeshCore's hook has only the length); as many as the store keeps.
+void MeshAdapter::attachPath(model::Message& m, uint8_t pathLen) {
+  bool known = _rxPath.valid && _rxPath.pathLen == pathLen;
+  _rxPath.valid = false;
+  int size = (pathLen >> 6) + 1, hops = pathLen & 63;
+  if (pathLen == 0xFF || hops == 0 || !known) return;
+  m.pathSize = (uint8_t)size;
+  m.pathN = (uint8_t)(hops * size > (int)sizeof m.path ? sizeof m.path / size : hops);
+  memcpy(m.path, _rxPath.path, m.pathN * size);
+}
+
 void MeshAdapter::onChannelMessage(uint8_t idx, uint8_t path_len, float snr, uint32_t ts, const char* text) {
   model::Message m;
   memset(&m, 0, sizeof m);
   m.ts = ts;
   m.snr_x4 = (int8_t)(snr * 4);
   m.hops = hopsOf(path_len);
+  attachPath(m, path_len);
   // Channel payloads are "sender: text".
   const char* sep = strstr(text, ": ");
   if (sep && sep - text < (int)sizeof m.sender) {
@@ -503,7 +517,7 @@ void MeshAdapter::onChannelMessage(uint8_t idx, uint8_t path_len, float snr, uin
 namespace {
 
 // A relay's name, if exactly one repeater or room contact has that hash.
-bool relayName(void* ctx, const uint8_t* hash, int size, char* out, int n) {
+bool findRelay(void* ctx, const uint8_t* hash, int size, char* out, int n) {
   MyMesh* mesh = (MyMesh*)ctx;
   ContactInfo c;
   const char* found = nullptr;
@@ -519,6 +533,10 @@ bool relayName(void* ctx, const uint8_t* hash, int size, char* out, int n) {
 }
 
 }  // namespace
+
+bool MeshAdapter::relayName(const uint8_t* hash, int size, char* out, int n) const {
+  return findRelay(_mesh, hash, size, out, n);
+}
 
 void MeshAdapter::pingReceived(const ContactInfo& from, uint8_t pathLen, float snr) {
   uint32_t ms = millis();
@@ -547,12 +565,12 @@ void MeshAdapter::pingReceived(const ContactInfo& from, uint8_t pathLen, float s
       for (int h = 0; h < hops; h++) memcpy(rev + h * size, from.out_path + (hops - 1 - h) * size, size);
       len = (uint8_t)((len & 0xC0) | hops);
     }
-    formatPong(_pong.text, sizeof _pong.text, len, rev, true, snr, _lastRssi, relayName, _mesh);
+    formatPong(_pong.text, sizeof _pong.text, len, rev, true, snr, _lastRssi, findRelay, _mesh);
   } else {
     // The path of this DM's packet, if the one just heard was it.
     bool known = _dmPath.valid && _dmPath.src == from.id.pub_key[0] && _dmPath.pathLen == pathLen;
     formatPong(_pong.text, sizeof _pong.text, pathLen, known ? _dmPath.path : nullptr, false, snr, _lastRssi,
-               relayName, _mesh);
+               findRelay, _mesh);
   }
   _dmPath.valid = false;
   _pong.due = (ms + PING_DELAY_MS) | 1;   // after MeshCore has finished with the packet
@@ -579,8 +597,15 @@ void MeshAdapter::onRawRx(float snr, float rssi, const uint8_t* raw, int len) {
   // MeshCore hands a packet to us here before decrypting it: if it is a DM,
   // keep its path for the ping bot (the message hook has only its length).
   mesh::Packet pkt;
-  if (len > 0 && len <= 255 && pkt.readFrom(raw, (uint8_t)len) && pkt.getPayloadType() == PAYLOAD_TYPE_TXT_MSG &&
-      pkt.payload_len > 1) {
+  bool ok = len > 0 && len <= 255 && pkt.readFrom(raw, (uint8_t)len);
+  if (ok && (pkt.getPayloadType() == PAYLOAD_TYPE_TXT_MSG || pkt.getPayloadType() == PAYLOAD_TYPE_GRP_TXT)) {
+    int n = pkt.getPathByteLen();
+    if (n > (int)sizeof _rxPath.path) n = sizeof _rxPath.path;
+    _rxPath.pathLen = pkt.path_len;
+    memcpy(_rxPath.path, pkt.path, n);
+    _rxPath.valid = true;
+  }
+  if (ok && pkt.getPayloadType() == PAYLOAD_TYPE_TXT_MSG && pkt.payload_len > 1) {
     int n = pkt.getPathByteLen();
     if (n > (int)sizeof _dmPath.path) n = sizeof _dmPath.path;
     _dmPath.src = pkt.payload[1];

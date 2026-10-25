@@ -1,6 +1,7 @@
 // Diagnostics pages, the received-packet log, GPS status and heard adverts.
 #include <time.h>
 #include "ui/screens/screens.h"
+#include "gen/mc_version.h"
 #include "ui/widgets.h"
 #include "ui/icons.h"
 #include <stdarg.h>
@@ -194,7 +195,10 @@ private:
     uint8_t k[6];
     a.m().selfKey(k);
     pair(n, "node id", C_ACCENT, "%02X%02X%02X%02X", k[0], k[1], k[2], k[3]);
-    pair(n, "fw", C_DIM, "%s", MC_UI_VERSION);
+    // Whole width: the label can be long (1.2.0+19.9bf8937.dirty).
+    DiagItem& fw = _items[n++];
+    fw = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, C_DIM};
+    snprintf(fw.value, sizeof fw.value, "fw %s", MC_UI_VERSION);
 #ifdef MC_BOARD_TDECK
     storage(n, d);
 #endif

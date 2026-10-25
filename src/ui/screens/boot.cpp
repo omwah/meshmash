@@ -2,6 +2,7 @@
 // backup on the SD card, offers to restore it first.
 #include "ui/icons_nav.h"
 #include "ui/screens/screens.h"
+#include "gen/mc_version.h"
 #include <stdio.h>
 
 namespace ui { namespace screens {

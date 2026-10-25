@@ -11,6 +11,7 @@ step() { printf '\n== %s\n' "$*"; }
 step "PII check";                  scripts/pii-check.sh --all
 step "licences";                   python -I scripts/check-licenses.py
 step "theme contrast";             python -I scripts/check-contrast.py
+step "version label";              python -I scripts/version.py --self-test
 step "upstream main.cpp";          scripts/check-upstream-main.sh
 step "patches apply";              scripts/prepare-deps.sh --force
 step "unit tests";                 pio test -e test -e test_tdeck -e simnet_test

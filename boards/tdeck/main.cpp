@@ -4,6 +4,7 @@
 // working, with our UI as the display task. When MeshCore changes that file,
 // review this one too (scripts/check-upstream-main.sh warns).
 #include <Arduino.h>
+#include "gen/mc_version.h"
 #include <SPIFFS.h>
 #include <Mesh.h>
 #include <helpers/ArduinoHelpers.h>

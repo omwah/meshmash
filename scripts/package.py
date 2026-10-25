@@ -26,18 +26,10 @@ ENVS = ["cardputer_adv", "cardputer_adv_usb", "tdeck", "tdeck_usb"]
 
 
 def version():
-    with open(os.path.join(ROOT, "platformio.ini")) as f:
-        m = re.search(r'MC_UI_VERSION=\\"([^"\\]+)\\"', f.read())
-    v = m.group(1) if m else "0.0.0"
-    try:
-        rev = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True,
-                             text=True, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT,
-                               capture_output=True, text=True).stdout.strip()
-        v += f"+{rev}{'.dirty' if dirty else ''}" if v.endswith("-dev") or dirty else ""
-    except (OSError, subprocess.CalledProcessError):
-        pass
-    return v
+    # The same label the device shows: scripts/version.py.
+    r = subprocess.run([sys.executable, "-I", os.path.join(ROOT, "scripts", "version.py")], capture_output=True,
+                       text=True, check=True)
+    return r.stdout.strip()
 
 
 def metadata(env):

@@ -5,6 +5,7 @@
 #include <FS.h>
 #include "app/backup.h"
 #include "app/msg_store.h"
+#include "app/platform.h"
 
 using app::Backup;
 
@@ -257,9 +258,57 @@ void test_history_moves_to_the_card() {
   TEST_ASSERT_EQUAL_UINT32(31, again.at(again.count() - 1).seq);
 }
 
+// Senders' clocks are often wrong: a message is stamped with this device's time once that is set.
+void test_message_time_is_the_devices_once_set() {
+  const uint32_t now = 1792900000, wrong = 1400000000;
+  TEST_ASSERT_EQUAL_UINT32(now, app::receivedAt(now, wrong));
+  TEST_ASSERT_EQUAL_UINT32(now, app::receivedAt(now, now + 86400 * 400));
+  TEST_ASSERT_EQUAL_UINT32(wrong, app::receivedAt(5000, wrong));   // clock not set yet: the sender's
+}
+
+// How far a sender's clock was from ours is kept with the message, rounded.
+void test_sender_clock_offset_is_kept() {
+  Fixture f;
+  app::MessageStore st;
+  TEST_ASSERT_TRUE(st.begin(&f.flash));
+  app::ThreadKey k = app::ThreadKey::channel(0);
+  const int32_t offs[] = {5, -40, 3 * 60, -2 * 3600 - 7, 5 * 86400, -(600 * 86400), 3 * 604800 * 100};
+  const int n = sizeof offs / sizeof offs[0];
+  for (int i = 0; i < n; i++) {
+    model::Message m = {};
+    m.ts = 1792900000 + i;
+    m.skewKnown = true;
+    m.skew = offs[i];
+    snprintf(m.sender, sizeof m.sender, "Someone");
+    snprintf(m.text, sizeof m.text, "text %d", i);
+    TEST_ASSERT_NOT_EQUAL(0, st.append(k, m));
+  }
+  model::Message none = {};   // an older record has no offset
+  none.ts = 1792900100;
+  snprintf(none.text, sizeof none.text, "plain");
+  st.append(k, none);
+  app::MessageStore again;   // read back from the file, not the window
+  TEST_ASSERT_TRUE(again.begin(&f.flash));
+  again.open(k);
+  TEST_ASSERT_EQUAL(n + 1, again.count());
+  for (int i = 0; i < n; i++) {
+    const model::Message& r = again.at(i);
+    TEST_ASSERT_TRUE(r.skewKnown);
+    int32_t want = offs[i], got = r.skew;
+    int32_t mag = want < 0 ? -want : want, tol = mag < 60 ? 59 : mag < 3600 ? 59 : mag < 86400 ? 3599 : mag < 604800 ? 86399 : 604799;
+    if (mag >= 255 * 604800) tol = mag;   // beyond the range: clamped
+    TEST_ASSERT_TRUE((want < 0) == (got < 0) || got == 0);
+    TEST_ASSERT_TRUE((got < 0 ? -got : got) <= mag);
+    TEST_ASSERT_TRUE(mag - (got < 0 ? -got : got) <= tol);
+  }
+  TEST_ASSERT_FALSE(again.at(n).skewKnown);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_round_trip);
+  RUN_TEST(test_sender_clock_offset_is_kept);
+  RUN_TEST(test_message_time_is_the_devices_once_set);
   RUN_TEST(test_history_moves_to_the_card);
   RUN_TEST(test_ring_of_another_size_is_refitted);
   RUN_TEST(test_ring_of_another_size_is_refitted_without_a_card);

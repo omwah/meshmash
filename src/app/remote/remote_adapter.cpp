@@ -610,7 +610,11 @@ void RemoteAdapter::onPush(const uint8_t* f, int len) {
 void RemoteAdapter::gotMessage(const cp::Msg& m) {
   model::Message out;
   memset(&out, 0, sizeof out);
-  out.ts = m.ts;
+  out.ts = m.txtType == cp::TXT_SIGNED ? m.ts : receivedAt(now(), m.ts);   // a room's posts keep the room's time
+  if (out.ts != m.ts && out.ts >= 1700000000u) {   // the sender's clock against ours
+    out.skewKnown = true;
+    out.skew = (int32_t)(m.ts - out.ts);
+  }
   out.snr_x4 = m.snr_x4;
   out.hops = hopsOf(m.pathLen);
   if (m.channel) {

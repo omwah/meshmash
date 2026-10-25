@@ -467,6 +467,13 @@ void MeshAdapter::loop() {
 
 // ------------------------------------------------------------------ receiving
 
+// How far the sender's clock was from ours, when ours is set and the time was not taken from them.
+void MeshAdapter::noteSenderClock(model::Message& m, uint32_t senderTs) {
+  if (m.ts == senderTs || m.ts < 1700000000u) return;
+  m.skewKnown = true;
+  m.skew = (int32_t)(senderTs - m.ts);
+}
+
 void MeshAdapter::onDirectMessage(const ContactInfo& from, uint8_t txt_type, uint8_t path_len, float snr,
                                   uint32_t sender_ts, const uint8_t* extra, int extra_len, const char* text) {
   if (path_len == 0 || path_len == 0xFF) noteSignal(from.id.pub_key, snr, _lastRssi);
@@ -477,7 +484,9 @@ void MeshAdapter::onDirectMessage(const ContactInfo& from, uint8_t txt_type, uin
   }
   model::Message m;
   memset(&m, 0, sizeof m);
-  m.ts = sender_ts;
+  // A room's posts keep the time the room gave them; everything else gets the time it arrived.
+  m.ts = txt_type == TXT_TYPE_SIGNED_PLAIN ? sender_ts : receivedAt(_rtc->getCurrentTime(), sender_ts);
+  noteSenderClock(m, sender_ts);
   m.snr_x4 = (int8_t)(snr * 4);
   m.hops = hopsOf(path_len);
   attachPath(m, path_len);
@@ -505,7 +514,8 @@ void MeshAdapter::attachPath(model::Message& m, uint8_t pathLen) {
 void MeshAdapter::onChannelMessage(uint8_t idx, uint8_t path_len, float snr, uint32_t ts, const char* text) {
   model::Message m;
   memset(&m, 0, sizeof m);
-  m.ts = ts;
+  m.ts = receivedAt(_rtc->getCurrentTime(), ts);
+  noteSenderClock(m, ts);
   m.snr_x4 = (int8_t)(snr * 4);
   m.hops = hopsOf(path_len);
   attachPath(m, path_len);

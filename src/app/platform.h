@@ -33,4 +33,10 @@ public:
 // so it matches Launcher and other M5Stack firmware.
 uint8_t batteryPercent(uint16_t mv);
 
+// When a message arrived, for the time shown beside it. Senders' clocks are often wrong, so it is
+// this device's clock, once that has been set; before that the sender's.
+inline uint32_t receivedAt(uint32_t deviceNow, uint32_t senderTs) {
+  return deviceNow >= 1700000000u ? deviceNow : senderTs;
+}
+
 }  // namespace app

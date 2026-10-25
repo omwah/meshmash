@@ -193,6 +193,10 @@ void MockModel::addMsg(ThreadId t, uint32_t ts, bool out, const char* sender, co
   m.t = t;
   m.m.seq = ++_lastSeq;
   m.m.ts = ts;
+  if (!out) {   // most senders' clocks are right; every fourth is far behind
+    m.m.skewKnown = true;
+    m.m.skew = m.m.seq % 4 == 0 ? -52000000 : 3;
+  }
   m.m.outgoing = out;
   m.m.status = st;
   m.m.snr_x4 = out ? INT8_MIN : snr_x4;

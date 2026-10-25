@@ -735,9 +735,26 @@ public:
       c.text(x + 1, y, m.sender, f, C_CHAT, -1, r.w - 90);
       x = c.text(x, y, m.sender, f, C_CHAT, -1, r.w - 90) + 8;
     }
-    fmtStamp(t, sizeof t, a.m().now(), m.ts);
-    c.text(x, y, t, f, C_DIM);
+    (void)x;
     y += lh + 2;
+    // The dates, with the year. Ours is when it arrived; the sender's clock is theirs to answer for.
+    char full[40];
+    fmtFull(full, sizeof full, m.ts);
+    if (m.outgoing) y = row(c, f, x0, y, lh, "Sent", full, C_TEXT);
+    else if (!m.skewKnown) y = row(c, f, x0, y, lh, "Time", full, C_TEXT);
+    else {
+      y = row(c, f, x0, y, lh, "Received", full, C_TEXT);
+      fmtFull(full, sizeof full, (uint32_t)((int64_t)m.ts + m.skew));
+      bool off = m.skew > 120 || m.skew < -120;
+      y = row(c, f, x0, y, lh, "Sent", full, off ? C_WARN : C_DIM);
+      if (off) {
+        int32_t d = m.skew < 0 ? -m.skew : m.skew;
+        if (d >= 2 * 86400) snprintf(v, sizeof v, "%ld days %s", (long)(d / 86400), m.skew < 0 ? "behind" : "ahead");
+        else if (d >= 2 * 3600) snprintf(v, sizeof v, "%ld hours %s", (long)(d / 3600), m.skew < 0 ? "behind" : "ahead");
+        else snprintf(v, sizeof v, "%ld min %s", (long)(d / 60), m.skew < 0 ? "behind" : "ahead");
+        y = row(c, f, x0, y, lh, "Their clock", v, C_WARN);
+      }
+    }
 
     if (m.outgoing) {
       static const char* const kStatus[] = {"", "sending", "sent", "delivered", "failed"};

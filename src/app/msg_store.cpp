@@ -8,7 +8,8 @@ namespace app {
 struct __attribute__((packed)) MessageStore::Rec {
   uint32_t seq;          // 0 = empty slot
   ThreadKey key;
-  uint8_t flags;         // bit0 outgoing, bit1 the incoming path is stored, bits 2-3 its hash size - 1
+  uint8_t flags;         // bit0 outgoing, bit1 the incoming path is stored, bits 2-3 its hash size - 1,
+                         // bits 4-7 with `status`: the sender's clock offset of an incoming message (packSkew)
   uint8_t status, retries, repeats;
   int8_t snr_x4, hops;
   uint32_t ts;
@@ -16,6 +17,25 @@ struct __attribute__((packed)) MessageStore::Rec {
   char sender[24];
   char text[model::TEXT_LEN];
 };
+
+// An incoming message has no delivery status either, so those 8 bits and 4 flag bits hold how far
+// the sender's clock was from ours: known (1 bit), sign, a unit (minutes, hours, days, weeks) and
+// 8 bits of count. Rounded, which is plenty: usually it is seconds, or hundreds of days.
+static uint16_t packSkew(int32_t d) {
+  uint32_t mag = d < 0 ? (uint32_t)(-(int64_t)d) : (uint32_t)d;
+  static const uint32_t kUnit[4] = {60, 3600, 86400, 604800};
+  int u = 0;
+  while (u < 3 && mag / kUnit[u] > 255) u++;
+  uint32_t v = mag / kUnit[u];
+  if (v > 255) v = 255;
+  return (uint16_t)(0x800 | (d < 0 ? 0x400 : 0) | (u << 8) | v);
+}
+
+static int32_t unpackSkew(uint16_t code) {
+  static const uint32_t kUnit[4] = {60, 3600, 86400, 604800};
+  int32_t mag = (int32_t)((code & 0xFF) * kUnit[(code >> 8) & 3]);
+  return code & 0x400 ? -mag : mag;
+}
 
 // An incoming message has no ack, retries or repeats, so those six bytes hold the
 // relays it passed (records from before this stay readable: no flag, no path).
@@ -389,6 +409,11 @@ uint32_t MessageStore::append(const ThreadKey& k, const model::Message& m, uint3
   r.key = k;
   r.flags = m.outgoing ? 1 : 0;
   r.status = (uint8_t)m.status;
+  if (!m.outgoing && m.skewKnown) {
+    uint16_t code = packSkew(m.skew);
+    r.status = (uint8_t)(code & 0xFF);
+    r.flags |= (uint8_t)((code >> 8) << 4);
+  }
   r.retries = m.retries;
   r.repeats = m.repeats;
   r.snr_x4 = m.snr_x4;
@@ -526,7 +551,14 @@ void MessageStore::toMessage(const Rec& r, model::Message& m) {
   m.snr_x4 = r.snr_x4;
   m.hops = r.hops;
   m.seq = r.seq;
-  if (!m.outgoing) unpackPath(r, m);
+  if (!m.outgoing) {
+    unpackPath(r, m);
+    uint16_t code = (uint16_t)(r.status | ((r.flags >> 4) << 8));
+    if (code & 0x800) {
+      m.skewKnown = true;
+      m.skew = unpackSkew(code);
+    }
+  }
   snprintf(m.sender, sizeof m.sender, "%s", r.sender);
   snprintf(m.text, sizeof m.text, "%s", r.text);
 }

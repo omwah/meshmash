@@ -137,6 +137,7 @@ private:
     uint8_t pathLen;
     uint8_t path[6];
   } _rxPath = {};
+  void noteSenderClock(model::Message& m, uint32_t senderTs);
   void attachPath(model::Message& m, uint8_t pathLen);
   struct PingAnswered { uint8_t key[6]; uint32_t at; };
   PingAnswered _answered[4] = {};

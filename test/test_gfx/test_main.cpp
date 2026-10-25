@@ -566,18 +566,18 @@ void test_mention_brackets_take_no_room() {
   TEST_ASSERT_EQUAL(4 * 8, Canvas::textWidth("@[Ali", &font_large));
 }
 
-void test_mention_is_drawn_on_the_selection_colour() {
+void test_mention_is_drawn_on_a_band() {
   s_c.noClip();
   s_c.clear(0);
   s_c.text(0, 0, "@[Ab] c", &font_large, C_TEXT);
-  // Inside the three-cell mention every pixel is the selection colour or the accent text;
-  // the cells after it are the plain background.
+  // Inside the three-cell mention every pixel is the selection colour or the text, which
+  // keeps its colour; the cells after it are the plain background.
   bool accent = false;
   for (int y = 0; y < 16; y++)
     for (int x = 0; x < 3 * 8; x++) {
       uint8_t p = s_c.get(x, y);
-      TEST_ASSERT_TRUE(p == C_SEL || p == C_ACCENT);
-      accent = accent || p == C_ACCENT;
+      TEST_ASSERT_TRUE(p == C_SEL || p == C_TEXT);
+      accent = accent || p == C_TEXT;
     }
   TEST_ASSERT_TRUE(accent);
   for (int y = 0; y < 16; y++) TEST_ASSERT_EQUAL(C_BG, s_c.get(3 * 8 + 1, y));   // the gap after it
@@ -660,7 +660,7 @@ int main(int, char**) {
   RUN_TEST(test_emoji_scale_doubles_the_art);
 #endif
   RUN_TEST(test_mention_brackets_take_no_room);
-  RUN_TEST(test_mention_is_drawn_on_the_selection_colour);
+  RUN_TEST(test_mention_is_drawn_on_a_band);
   RUN_TEST(test_mention_continues_over_a_wrapped_line);
   RUN_TEST(test_mention_ends_at_a_newline);
   RUN_TEST(test_wrap_breaks_at_spaces);

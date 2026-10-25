@@ -1,4 +1,4 @@
-# @[Name] mentions show as @Name on a highlight, without the brackets: at the start of
+# @[Name] mentions show as @Name on a band, without the brackets: at the start of
 # a message, in the middle, with spaces in the name, wrapped over lines, with an emoji,
 # cut short, and next to ordinary text with brackets.
 rx dm 0 @[Rose01] wassup

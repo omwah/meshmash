@@ -270,9 +270,9 @@ static void drawGlyph(Canvas& c, int x, int y, const Glyph& g, uint8_t fg) {
 
 // Draw an element with its top left at (x, y).
 static void drawElem(Canvas& c, int x, int y, const Elem& el, const mc_font_t* f, uint8_t fg) {
-  if (el.pill) {                       // a mention: accent text on the selection colour
+  if (el.pill) {                       // a mention: a quiet band behind the text, which keeps its colour
     if (el.adv) c.fillRect(x, y, el.adv, f->height, C_SEL);
-    fg = C_ACCENT;
+    if (fg == C_DIM) fg = C_TEXT;      // dim text would sink into the band
   }
   if (el.emoji) {
     if (c.emoji(x, y, el.emoji, el.emojiGlyph)) return;

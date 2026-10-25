@@ -36,6 +36,7 @@ MockModel::MockModel() {
   _prefs.brightness = 192;
   _prefs.screenTimeoutS = 60;
   _prefs.inputLockoutMs = 60;
+  _prefs.ledBrightness = 128;
   _prefs.sound = true;
   _prefs.textSize = 1;
   _prefs.vimKeys = MC_VIM_KEYS_DEFAULT;

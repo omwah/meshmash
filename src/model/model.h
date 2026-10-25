@@ -186,6 +186,7 @@ struct Prefs {
   bool shortPreview;              // chats list: scroll only the stored preview, not the whole message
   bool vimKeys;                   // h/j/k/l and friends move around (ui/input/vim.h)
   bool trackball;                 // boards with one: its rolls move (a worn one can be turned off)
+  uint8_t ledBrightness;          // the notification light, 1-255 (the T-Deck's is the key backlight)
   bool touchScrollNatural;        // touch boards: a drag moves the content with the finger (false: the
                                   // selection or view moves with it, as the arrow keys do)
   bool lockOnTimeout;             // boards with an unlock button: when the screen times out, keys and

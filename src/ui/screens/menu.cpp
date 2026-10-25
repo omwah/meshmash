@@ -117,7 +117,7 @@ MainMenu s_menu;
 // ------------------------------------------------------------- settings
 
 enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_TIME, S_TZ, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
-             S_HDR_IN, S_VIM, S_BALL, S_LOCK, S_SCROLL, S_LOCKOUT, S_SOUND, S_NOTIFY,
+             S_HDR_IN, S_VIM, S_BALL, S_LOCK, S_SCROLL, S_LOCKOUT, S_SOUND, S_NOTIFY, S_LEDLEVEL,
              S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_BLE, S_PIN, S_PINMODE,
              S_HDR_GPS, S_GPS, S_GPSADV, S_GPSTIME,
              S_HDR_TELEM, S_TBATT, S_TLOC, S_TENV,
@@ -207,6 +207,10 @@ protected:
         it.label = "Bluetooth (phone app)"; it.choice = true;
         it.enabled = a.m().bleAvailable();
         snprintf(it.value, sizeof it.value, "%s", !it.enabled ? "n/a" : !p.bleEnabled ? "off" : a.m().bleConnected() ? "connected" : "on");
+      case S_LEDLEVEL:
+        it.label = "LED brightness"; it.choice = true;
+        snprintf(it.value, sizeof it.value, "%d%%", p.ledBrightness * 100 / 255);
+        break;
         it.valueCol = a.m().bleConnected() ? C_OK : C_ACCENT;
         break;
       case S_PIN:
@@ -342,6 +346,11 @@ protected:
         break;
       }
       default: return;
+      case S_LEDLEVEL: {
+        static const uint8_t kLevels[] = {32, 64, 128, 192, 255};
+        p.ledBrightness = (uint8_t)stepIn(kLevels, p.ledBrightness, dir);
+        break;
+      }
     }
     a.m().setPrefs(p);
     a.applyPrefs();
@@ -364,6 +373,7 @@ public:
       _r = a.m().radio();
       _preset = a.m().prefs().presetIdx;
     }
+    if (i == S_LEDLEVEL) a.flashLed();   // show it
     MenuScreen::onEnter(a);
   }
 

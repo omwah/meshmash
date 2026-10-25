@@ -39,6 +39,7 @@ struct UiPrefs {
   uint8_t trackballOff;          // 1: the trackball's rolls are ignored
   uint8_t scrollNatural;         // 1: a drag moves the content with the finger; 0: as the arrow keys do
   uint8_t lockOff;               // 1: the screen timing out does not lock the keys (0: it does)
+  uint8_t ledLevel;              // notification light brightness; 0: the default (128)
 };
 
 // The mode the device boots in, from the UI prefs on flash (before any

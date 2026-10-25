@@ -152,6 +152,7 @@ bool TDeckKeyboard::poll(hal::KeyEvent& ev) {
   if (_diff.next(ev)) return true;
   ball();
   click();
+  if (_notify > want) want = _notify;
   uint32_t now = millis();
   if (now - _lastPoll >= 20) {
     _lastPoll = now;

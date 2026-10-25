@@ -128,6 +128,7 @@ void AdapterBase::uiToPrefs() {
   p.trackball = !_ui.trackballOff;
   p.lockOnTimeout = !_ui.lockOff;
   p.touchScrollNatural = _ui.scrollNatural;
+  p.ledBrightness = _ui.ledLevel ? _ui.ledLevel : 128;
   p.notify = _ui.notifyMode <= 3 ? (model::NotifyMode)_ui.notifyMode : model::NotifyMode::Led;
 }
 
@@ -154,6 +155,7 @@ void AdapterBase::prefsToUi(const model::Prefs& p) {
   _ui.trackballOff = !p.trackball;
   _ui.lockOff = !p.lockOnTimeout;
   _ui.scrollNatural = p.touchScrollNatural;
+  _ui.ledLevel = p.ledBrightness;
 }
 
 void AdapterBase::setUiMuted(int slot, bool muted) {

@@ -31,6 +31,10 @@ private:
   void keys();
   void ball();
   void click();
+  // The notification light: the key backlight at this level (0: back to
+  // following the keys). See TDeckLed.
+  void setNotifyLight(uint8_t level) { _notify = level; }
+
   void light();
   void typed(uint8_t c);
   void tap(uint8_t usage, uint8_t mods);
@@ -39,9 +43,24 @@ private:
   ReportDiff _diff;
   uint8_t _matrix[TDECK_KEYMAP_COLS] = {};
   bool _ok = false, _raw = true, _ballOn = true;
-  bool _clickDown = false, _unlock = false, _locked = false;
-  uint32_t _clickAt = 0;
-  uint32_t _lastPoll = 0, _lastKey = 0;
-  uint8_t _lightLevel = 127, _lit = 0xFF;
+  bool _clickDown = false, _unlock = false, _locked = false, _lock = false, _clickEnter = false;
+  uint32_t _clickAt = 0, _clickFrom = 0;
+  uint32_t _lastPoll = 0, _lastKey = 0, _scanMs = 20;
+  uint8_t _lightLevel = 127, _lit = 0xFF, _notify = 0;
   uint16_t _lightSec = 10;
+};
+
+// The T-Deck has no LED: new messages blink the key backlight instead.
+#include "hal/led.h"
+class TDeckLed : public hal::Led {
+public:
+  explicit TDeckLed(TDeckKeyboard& k) : _k(k) {}
+  void set(uint8_t r, uint8_t g, uint8_t b) override {
+    uint8_t v = r > g ? r : g;
+    _k.setNotifyLight(v > b ? v : b);
+  }
+  bool colour() const override { return false; }
+
+private:
+  TDeckKeyboard& _k;
 };

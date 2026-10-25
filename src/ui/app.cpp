@@ -564,7 +564,6 @@ const uint8_t kLedColours[][3] = {{255, 0, 0},   {255, 110, 0}, {255, 220, 0}, {
                                   {0, 220, 255}, {0, 40, 255},  {170, 0, 255}};
 constexpr int kLedSteps = sizeof kLedColours / sizeof kLedColours[0];
 constexpr uint32_t kLedStepMs = 280;
-constexpr uint8_t kLedLevel = 128;  // of 255: 32 was too dim to notice on the device
 
 }  // namespace
 
@@ -588,8 +587,12 @@ uint32_t App::ledTick(uint32_t now) {
   }
   if (step != _ledStep) {
     _ledStep = step;
-    const uint8_t* c = kLedColours[step];
-    _led->set(c[0] * kLedLevel / 255, c[1] * kLedLevel / 255, c[2] * kLedLevel / 255);
+    // Settings -> LED brightness, of 255 (32 was too dim to notice on the device).
+    const int lv = _m.prefs().ledBrightness ? _m.prefs().ledBrightness : 128;
+    uint8_t c[3] = {255, 255, 255};
+    if (_led->colour()) memcpy(c, kLedColours[step], 3);
+    else if (step & 1) c[0] = c[1] = c[2] = 0;   // a plain light: on, off, on...
+    _led->set(c[0] * lv / 255, c[1] * lv / 255, c[2] * lv / 255);
   }
   return kLedStepMs - t % kLedStepMs;
 }

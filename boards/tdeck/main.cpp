@@ -57,6 +57,7 @@ static MyMesh* g_mesh = nullptr;
 static St7789TDeck display(loraSpi);
 static TDeckKeyboard keyboard;
 static Gt911Touch touch;
+static TDeckLed led(keyboard);   // the key backlight, blinked for a new message
 static I2sSound sound;
 // The UI, built in setup() on the local or the remote model.
 static void* ui_storage = nullptr;
@@ -100,6 +101,9 @@ static void setupRemote() {
   ui_app->setTouch(&touch);
   ui_app->begin(ui::screens::boot());
   board.onBootComplete();
+  ui_app->setLed(&led);
+  idle.begin();
+  ui_app->setIdleHook(&idle);
   Serial.printf("meshmash %s (remote node mode): keyboard %s, touch %s, sd %s, heap %u (min %u)\n",
                 MC_UI_VERSION, keyboard.present() ? (keyboard.rawMode() ? "ok" : "chars only") : "MISSING",
                 touch.present() ? "ok" : "MISSING", platform.sd() ? "yes" : "no", (unsigned)platform.heapFree(),
@@ -139,6 +143,9 @@ void setup() {
   ui_app->setTouch(&touch);
   ui_app->begin(ui::screens::boot());
   if (!fs_ok) ui_app->toast("No storage partition: nothing is saved", ui::C_ERR);
+  ui_app->setLed(&led);
+  idle.begin();
+  ui_app->setIdleHook(&idle);
   ui_app->loop(millis());
 #if defined(BLE_PIN_CODE)
   platform.blePairingFn = [] { return ble_interface.pairing(); };

@@ -116,7 +116,7 @@ MainMenu s_menu;
 
 // ------------------------------------------------------------- settings
 
-enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_TIME, S_TZ, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
+enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_TIME, S_TZ, S_CLOCK, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
              S_HDR_IN, S_VIM, S_BALL, S_LOCK, S_SCROLL, S_LOCKOUT, S_SOUND, S_NOTIFY, S_LEDLEVEL,
              S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_BLE, S_PIN, S_PINMODE,
              S_HDR_GPS, S_GPS, S_GPSADV, S_GPSTIME,
@@ -177,6 +177,7 @@ protected:
       case S_REMOTE: it.label = "Remote node"; it.enabled = remoteMode(a); break;
       case S_HDR_TIME: it.label = "TIME"; it.header = true; break;
       case S_TZ: it.label = "Time zone"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", kZones[p.timeZone % kZoneCount].name); break;
+      case S_CLOCK: it.label = "Clock"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", p.clock12 ? "12-hour" : "24-hour"); break;
       case S_HDR_DISP: it.label = "DISPLAY"; it.header = true; break;
       case S_THEME: it.label = "Theme"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", kThemes[p.theme % kThemeCount].name); break;
       case S_BRIGHT: it.label = "Brightness"; it.choice = true; snprintf(it.value, sizeof it.value, "%d%%", (p.brightness * 100 + 127) / 255); break;
@@ -332,6 +333,7 @@ protected:
                   });
         return;
       case S_TZ: p.timeZone = (uint8_t)((p.timeZone + kZoneCount + dir) % kZoneCount); break;
+      case S_CLOCK: p.clock12 = !p.clock12; break;
       case S_THEME: p.theme = (uint8_t)((p.theme + kThemeCount + dir) % kThemeCount); break;
       case S_BRIGHT: {
         int v = p.brightness + dir * 32;

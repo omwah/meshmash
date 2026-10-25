@@ -176,6 +176,7 @@ void App::applyPrefs() {
   _mx = &kMetrics[p.textSize < 3 ? p.textSize : 1];
   _lastInput = _now;
   setTimeZone(kZones[p.timeZone < kZoneCount ? p.timeZone : 0].posix);
+  setClock12(p.clock12);
   _in.setLockout(p.inputLockoutMs);
   _d.setBacklight(p.brightness);
   _forceFlush = true;
@@ -839,9 +840,28 @@ void fmtAge(char* out, size_t n, uint32_t d) {
   else snprintf(out, n, "%ud", (unsigned)(d / 86400));
 }
 
-void fmtTime(char* out, size_t n, uint32_t ts) {
+static bool s_clock12 = false;
+void setClock12(bool on) { s_clock12 = on; }
+
+// "13:28", or "1:28pm" with the 12-hour clock; `full` spells it "1:28 PM".
+static void clockOf(char* out, size_t n, uint32_t ts, bool full) {
   uint32_t s = toLocal(ts) % 86400;
-  snprintf(out, n, "%02u:%02u", (unsigned)(s / 3600), (unsigned)(s / 60 % 60));
+  unsigned h = (unsigned)(s / 3600), m = (unsigned)(s / 60 % 60);
+  if (!s_clock12) { snprintf(out, n, "%02u:%02u", h, m); return; }
+  unsigned h12 = h % 12 ? h % 12 : 12;
+  snprintf(out, n, full ? "%u:%02u %s" : "%u:%02u%s", h12, m, full ? (h < 12 ? "AM" : "PM") : (h < 12 ? "am" : "pm"));
+}
+
+void fmtTime(char* out, size_t n, uint32_t ts) { clockOf(out, n, ts, false); }
+
+void fmtFull(char* out, size_t n, uint32_t ts) {
+  static const char* const kMon[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  int y;
+  unsigned m, d;
+  civilFromDays((int32_t)(toLocal(ts) / 86400), y, m, d);
+  char hm[12];
+  clockOf(hm, sizeof hm, ts, true);
+  snprintf(out, n, "%s %u %d %s", kMon[m - 1], d, y, hm);
 }
 
 void fmtStamp(char* out, size_t n, uint32_t now, uint32_t ts) {

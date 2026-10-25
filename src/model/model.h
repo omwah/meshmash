@@ -65,7 +65,9 @@ struct Thread {
 enum class Delivery : uint8_t { None, Pending, Sent, Delivered, Failed };
 
 struct Message {
-  uint32_t ts;                    // epoch seconds (sender's time for incoming)
+  uint32_t ts;                    // epoch seconds: when it arrived here (when it was sent, if ours)
+  bool skewKnown;                 // incoming: `skew` is set (this device's clock was set when it arrived)
+  int32_t skew;                   // incoming: the sender's clock minus ts, in seconds (rounded when kept)
   bool outgoing;
   Delivery status;                // outgoing only
   uint8_t retries;
@@ -200,6 +202,7 @@ struct Prefs {
   Mode deviceMode;                // takes effect after a restart
   bool pingBot;                   // answer "ping" DMs with the path they took
   NotifyMode notify;              // what a new message does
+  bool clock12;                   // times as 1:28 PM; false: 13:28
   uint8_t ledBrightness;          // the notification light, 1-255 (the T-Deck's is the key backlight)
   bool shortPreview;              // chats list: scroll only the stored preview, not the whole message
   bool vimKeys;                   // h/j/k/l and friends move around (ui/input/vim.h)

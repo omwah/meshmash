@@ -11,6 +11,10 @@ shot settings-timezone-eastern
 key left 4
 key down
 key right
+shot settings-clock-12h
+key left
+key down
+key right
 shot settings-theme-amber
 key right 3
 shot settings-theme-daylight

@@ -381,6 +381,8 @@ void App::key(uint16_t code) {
   if (top() == before) _k.setTextMode(keyboardText());
 }
 
+int Screen::dragRowPx(App& a) { return a.mx().row; }
+
 #if MC_TOUCH
 void App::hit(const Rect& r, HitTarget::Kind kind, int arg) {
   if (!_touch || _nHits == MAX_HITS) return;
@@ -396,8 +398,6 @@ int App::dragSteps(int dy, int step) {
   _dragRest -= n * step;
   return n;
 }
-int Screen::dragRowPx(App& a) { return a.mx().row; }
-
 
 void App::handleGesture(const Gesture& g) {
   _dirty = true;
@@ -477,9 +477,9 @@ uint32_t App::loop(uint32_t now) {
   }
   // The unlock button's press also came through as an Enter, dropped above.
   if (_k.unlockPressed() && _locked) unlock(now);
-  _in.tick(now);
   // Holding it while unlocked locks the device by hand.
   if (_k.lockPressed() && !_locked && _k.hasUnlockButton()) lockNow();
+  _in.tick(now);
 
   // A phone pairing over Bluetooth: show the PIN on top of everything.
   bool pairing = _m.blePairing();
@@ -505,9 +505,9 @@ uint32_t App::loop(uint32_t now) {
     }
   }
   _lastUnread = unread;
-  // Screen timeout.
+  // Screen timeout. The backlight is the biggest draw: it dims for the last
+  // seconds, and any key or touch brings it back.
   uint16_t timeout = _m.prefs().screenTimeoutS;
-  if (!_asleep && timeout && now - _lastInput > timeout * 1000u) {
   if (!_asleep && timeout >= 20) {
     const uint32_t kDimMs = 8000;
     bool dim = now - _lastInput > timeout * 1000u - kDimMs;
@@ -517,8 +517,9 @@ uint32_t App::loop(uint32_t now) {
       _d.setBacklight(dim && low < b ? low : b);
     }
   }
-    _asleep = true;
+  if (!_asleep && timeout && now - _lastInput > timeout * 1000u) {
     _dimmed = false;
+    _asleep = true;
     _d.setBacklight(0);
     _d.sleep(true);
     if (_k.hasUnlockButton() && _m.prefs().lockOnTimeout) {
@@ -572,12 +573,12 @@ uint32_t App::loop(uint32_t now) {
     return 40;
   }
 
-  uint32_t wait = _in.wakeIn(now);
   if (_idleHook && _idleTold != _asleep) {
     _idleTold = _asleep;
     _idleHook->setIdle(_asleep);
   }
 
+  uint32_t wait = _in.wakeIn(now);
 #if MC_TOUCH
   uint32_t lp = _gest.wakeIn(now);
   if (lp && (!wait || lp < wait)) wait = lp;

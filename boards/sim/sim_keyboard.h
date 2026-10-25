@@ -35,6 +35,7 @@ public:
 #ifdef MC_BOARD_TDECK
   bool hasUnlockButton() const override { return true; }   // the trackball's click
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }
+  bool lockPressed() override { bool l = _lock; _lock = false; return l; }
 #endif
 
   // Schedule a matrix change (or a trackball roll) at an absolute time.
@@ -63,7 +64,7 @@ private:
   cardputer_keymap_t _st{};
 #endif
   ReportDiff _diff;
-  bool _unlock = false;
+  bool _unlock = false, _lock = false;
 };
 
 }  // namespace sim

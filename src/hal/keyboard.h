@@ -26,6 +26,9 @@ public:
   // True once for each press of it. The press also arrives as an ordinary key
   // event (an Enter), so the UI tells the two apart by this.
   virtual bool unlockPressed() { return false; }
+  // True once when that button has been held long enough to mean "lock now"
+  // (it then sends no Enter).
+  virtual bool lockPressed() { return false; }
   // The UI is locked: keys and rolls are not activity, so a pocket full of
   // them must not light the key backlight. The unlock button still counts.
   virtual void setLocked(bool locked) { (void)locked; }

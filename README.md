@@ -113,7 +113,7 @@ times out the T-Deck locks, and keys, trackball rolls and touches do nothing
 (they don't even wake it) until the trackball is clicked. A message can still
 light the screen; it stays locked, with a padlock in the header, and a key
 pressed then says so. The click that unlocks does nothing else. Off, any key
-wakes the screen as before. The Cardputer, which has no such button, never locks.
+wakes the screen as before. Holding the click for about a second locks it by hand (the screen goes dark too), with the timeout lock on or off. The Cardputer, which has no such button, never locks.
 
 Touch:
 

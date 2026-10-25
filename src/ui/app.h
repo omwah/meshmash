@@ -230,6 +230,7 @@ private:
   bool _pairing = false;         // the PIN overlay is showing
   bool _pairingHidden = false;   // dismissed with Esc for this attempt
 };
+  void lockNow();
 
 // Shared drawing helpers.
 void drawSignal(Canvas& c, int x, int y, int8_t snr_x4);       // 4 bars, 9x8

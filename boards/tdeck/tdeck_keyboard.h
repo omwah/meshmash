@@ -3,8 +3,9 @@
 // (read every 20 ms, as esp-vim's esp_kbd_tdeck_dev.c does, Apache-2.0).
 // Firmware older than June 2025 has no raw mode and sends characters only.
 // Mapping is tdeck_keymap.c. The trackball's four hall sensors toggle pins as
-// it rolls (arrow keys every two toggles); its click, on GPIO0, is Enter and also
-// the unlock button (hal::Keyboard::unlockPressed).
+// it rolls (arrow keys every two toggles); its click, on GPIO0, is Enter (on release), the
+// unlock button (hal::Keyboard::unlockPressed) and, held, the lock button
+// (hal::Keyboard::lockPressed).
 #pragma once
 #include "hal/keyboard.h"
 extern "C" {
@@ -20,6 +21,7 @@ public:
   bool rawMode() const { return _raw; }
   bool hasUnlockButton() const override { return true; }
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }
+  bool lockPressed() override { bool l = _lock; _lock = false; return l; }
   void setLocked(bool locked) override { _locked = locked; }
   // A worn trackball can roll by itself: off, its rolls are ignored (the
   // click still works).

@@ -42,3 +42,10 @@ assert unlocked
 key a
 assert awake
 assert unlocked
+# Holding the trackball's click locks it by hand, even with the timeout lock off.
+key hold
+assert asleep
+assert locked
+key click
+assert unlocked
+assert awake

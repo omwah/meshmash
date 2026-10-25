@@ -285,6 +285,20 @@ int App::fitText(Canvas& c, int x, int y, const char* s, const mc_font_t* f, uin
   return x + maxw;
 }
 
+// Locked by hand: the screen goes dark too, as when the timeout locks it.
+void App::lockNow() {
+  _locked = true;
+  _k.setLocked(true);
+  _in.flush();
+  if (!_asleep) {
+    _dimmed = false;
+    _asleep = true;
+    _d.setBacklight(0);
+    _d.sleep(true);
+  }
+  _dirty = true;
+}
+
 void App::unlock(uint32_t now) {
   _locked = false;
   _k.setLocked(false);
@@ -463,6 +477,8 @@ uint32_t App::loop(uint32_t now) {
   // The unlock button's press also came through as an Enter, dropped above.
   if (_k.unlockPressed() && _locked) unlock(now);
   _in.tick(now);
+  // Holding it while unlocked locks the device by hand.
+  if (_k.lockPressed() && !_locked && _k.hasUnlockButton()) lockNow();
 
   // A phone pairing over Bluetooth: show the PIN on top of everything.
   bool pairing = _m.blePairing();

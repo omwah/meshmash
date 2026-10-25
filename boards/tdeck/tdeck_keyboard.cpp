@@ -119,8 +119,11 @@ void TDeckKeyboard::ball() {
 }
 
 // The click: Enter, and the unlock button, once it has stayed down for 30 ms (a
-// worn switch bounces).
+// worn switch bounces). Locked, that is all it is, so it answers at once.
+// Unlocked, the Enter waits for the release: a hold of kHoldMs or more is the
+// lock request instead (hal::Keyboard::lockPressed) and sends no Enter.
 void TDeckKeyboard::click() {
+  const uint32_t kHoldMs = 700;
   bool down = digitalRead(PIN_BALL_CLICK) == LOW;
   uint32_t now = millis();
   if (down && !_clickDown) {
@@ -130,7 +133,12 @@ void TDeckKeyboard::click() {
     _clickAt = 0;
     _lastKey = now;
     _unlock = true;
-    tap(0x28, 0);
+    _clickEnter = !_locked;   // sent on release, unless this turns into a hold
+    if (_locked) tap(0x28, 0);
+  } else if (down && _clickEnter && now - _clickFrom >= kHoldMs) {
+    _clickEnter = false;
+    _lastKey = now;
+    _lock = true;
   } else if (!down) {
     _clickDown = false;
     _clickAt = 0;

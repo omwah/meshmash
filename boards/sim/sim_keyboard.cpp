@@ -33,8 +33,8 @@ static const char* const kAlias[][2] = {{"esc", "alt"}, {"ctrl", "mic"}, {"menu"
                                         {"tab", "sym+space"}, {"del", "sym+bksp"}, {"backspace", "bksp"},
                                         {"ret", "enter"}};
 // The trackball, in tdeck_keymap's direction order, then its click.
-static const char* const kBall[] = {"up", "down", "left", "right", "click"};
-static constexpr int BALL_CLICK = 4;
+static const char* const kBall[] = {"up", "down", "left", "right", "click", "hold"};
+static constexpr int BALL_CLICK = 4, BALL_HOLD = 5;
 #else
 // The printed layout, as in cardputer_keymap.h.
 static constexpr int ROWS = 4, COLS = 14;
@@ -74,7 +74,7 @@ void SimKeyboard::setTextMode(bool on) {
 static bool add(const char* legend, Chord& out) {
   if (out.n == 3) return false;
 #ifdef MC_BOARD_TDECK
-  for (int d = 0; d < 5; d++)
+  for (int d = 0; d < 6; d++)
     if (!strcmp(legend, kBall[d])) {
       out.row[out.n] = Chord::BALL;
       out.col[out.n++] = (int8_t)d;
@@ -161,6 +161,8 @@ bool SimKeyboard::poll(hal::KeyEvent& ev) {
       r.has_mods = true;
       if (e.col == BALL_CLICK) {
         if (e.down) { r.key[r.n++] = 0x28; _unlock = true; }
+      } else if (e.col == BALL_HOLD) {
+        if (e.down) _lock = true;   // the click, held: no Enter
       } else if (e.down) {
         r.key[r.n++] = tdeck_keymap_ball_usage(e.col);
       }

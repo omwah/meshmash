@@ -115,6 +115,8 @@ public:
   void replace(Screen* s);
   void popToRoot();
   Screen* top() { return _stack[_depth - 1]; }
+  int depth() const { return _depth; }
+  Screen* screenAt(int i) const { return _stack[i]; }
 
   // Transient message over the footer.
   void toast(const char* text, uint8_t col = C_ACCENT);

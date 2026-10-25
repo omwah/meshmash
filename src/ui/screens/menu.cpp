@@ -308,7 +308,8 @@ protected:
 #if MC_UI_REMOTE
       case S_REMOTE: openRemote(a); break;
 #endif
-      case S_NOTIFY: a.flashLed(); break;   // a preview of the colours
+      case S_NOTIFY:
+      case S_LEDLEVEL: a.flashLed(); break;   // a preview of the colours
       default:
         adjust(a, i, 1);
     }
@@ -579,9 +580,38 @@ BackupScreen s_backup;
 
 }  // namespace
 
+// The screens above Home when the menu was left for a tab: the menu and what was open in it.
+Screen* s_saved[6];
+int s_nSaved = 0;
+
+// Where the menu sits in the stack, or -1 (it can be opened over a conversation too).
+static int menuAt(App& a) {
+  for (int i = 1; i < a.depth(); i++)
+    if (a.screenAt(i) == &s_menu) return i;
+  return -1;
+}
+
+void menuLeaving(App& a) {
+  s_nSaved = 0;
+  int at = menuAt(a);
+  if (at < 0) return;
+  for (int i = at; i < a.depth() && s_nSaved < 6; i++) s_saved[s_nSaved++] = a.screenAt(i);
+}
+
 void openMainMenu(App& a) {
-  if (a.top() == &s_menu) a.pop();   // Menu again closes it
-  else a.push(&s_menu);   // the cursor stays on the last item
+  if (a.top() == &s_menu) { a.pop(); return; }   // Menu again closes it
+  if (menuAt(a) >= 0) {   // inside one of its screens: back to the menu
+    while (a.top() != &s_menu) a.pop();
+    return;
+  }
+  // The cursor stays on the last item, and so does whatever was open in the menu.
+  if (s_nSaved) {
+    int n = s_nSaved;
+    s_nSaved = 0;
+    for (int i = 0; i < n; i++) a.push(s_saved[i]);
+    return;
+  }
+  a.push(&s_menu);
 }
 bool mainMenuOpen(App& a) { return a.top() == &s_menu; }
 void openSettings(App& a) { s_settings.resetNav(); a.push(&s_settings); }

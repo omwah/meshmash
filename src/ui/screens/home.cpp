@@ -394,6 +394,7 @@ void shortcut(App& a, int sc) {
     return;
   }
   // Home, on that tab; from anywhere, as long Esc does.
+  menuLeaving(a);
   if (a.top() != &s_home) a.popToRoot();
   if (a.top() == &s_home) s_home.showTab(a, sc - SC_CHATS);
   a.invalidate();

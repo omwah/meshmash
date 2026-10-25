@@ -30,6 +30,9 @@ void openChannel(App& a, int channelIdx);
 void openAdmin(App& a, int contactIdx);
 void openMainMenu(App& a);
 bool mainMenuOpen(App& a);
+// Going to another tab from inside the menu (Diagnostics, Settings...): remember where it was,
+// so the Menu button, or the menu key, comes back to the same screen.
+void menuLeaving(App& a);
 void openSettings(App& a);
 void openRadio(App& a);
 void openDiag(App& a);

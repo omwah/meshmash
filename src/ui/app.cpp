@@ -767,7 +767,7 @@ int drawBadge(App& a, int xRight, int y, unsigned n, uint8_t col) {
   int w = Canvas::textWidth(b, a.fSmall()) + 6;
   int x = xRight - w;
   a.canvas().pill(x, y, w, a.fSmall()->height + 2, col);
-  a.canvas().text(x + 3, y + 1, b, a.fSmall(), C_HTXT);
+  a.canvas().text(x + 3, y + 1, b, a.fSmall(), onColour(a.theme(), col));
   return x;
 }
 

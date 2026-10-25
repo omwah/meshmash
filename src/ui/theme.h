@@ -33,6 +33,12 @@ constexpr uint16_t rgb(uint8_t r, uint8_t g, uint8_t b) {
   return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 }
 
+// WCAG contrast ratio of two RGB565 colours, as the panel shows them.
+float contrast(uint16_t a, uint16_t b);
+// Text on a filled badge or pill: the header text colour or the background,
+// whichever reads better on `fill` in this theme.
+Col onColour(const Theme& t, uint8_t fill);
+
 extern const Theme kThemes[];
 extern const int kThemeCount;
 

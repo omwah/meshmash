@@ -145,7 +145,7 @@ On the Cardputer, `;` `,` `.` `/` then always type, and Fn + them still moves.
 | `gt` `gT`, `{n}gt` | next / previous Home tab, tab n |
 | `i` `a` `o` | write a message (`o` on Home: open the selection and write) |
 | `ZZ` `ZQ` | send / discard the draft left after Esc |
-| `l` in a conversation | pick the message at the bottom of the view; then `j` `k` move, Enter shows its details (route, relays, signal), `r` replies to its sender (`@[Name]` first), `t` opens its thread, Esc puts it down |
+| `l` in a conversation | pick the message at the bottom of the view; then `j` `k` move, Enter shows its details (route, relays, signal), `r` replies to its sender (`@[Name]` first) and `t` opens its thread (channels and rooms; a DM has nobody to pick out), Esc puts it down |
 | Tab while writing | complete the name after an `@` (`@Ri` Tab gives `@[Ridge 900] `); Tab again for the next one |
 | `q` | back |
 | Ctrl-o | the conversation before this one |
@@ -162,7 +162,7 @@ A command being typed (`2g`) shows at the right of the footer.
   - Channels.
 - **Conversation:**
   - Each message shows its delivery state: sending, sent, delivered or failed, with retries and repeat counts.
-  - Incoming messages show hops and SNR. Picking a message (Right, `l`, or a tap) and pressing Enter shows more: the route and the relays it passed (named when a repeater or room contact matches), the signal and the full time.
+  - Incoming messages show hops and SNR. Picking a message (Right, `l`, or a tap) and pressing Enter shows more: the hop count and each relay it passed, as its prefix and its name (when one repeater or room contact matches), the signal and the full time.
   - **Threads:** `t` on a picked message follows its `@[Name]` mention back to the last thing that person wrote, with the messages they sent right before it, and so on up the chain. Enter in the thread jumps to that message in the whole conversation. `r` starts a reply to the sender of the picked message.
   - A "New" line marks where the messages that arrived since you last opened the chat begin, and the chat opens scrolled to it.
   - You can compose replies inline, in a word-wrapped box.

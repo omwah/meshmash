@@ -108,6 +108,7 @@ void drawMessage(App& a, Canvas& c, const model::Message& m, bool chan, bool sel
 
 // The thread screen, below ConversationScreen.
 void showThread(App& a, model::ThreadId id, const int* idx, int n);
+void openInfo(App& a, const model::Message& m, bool chan);
 
 class ConversationScreen : public Screen {
 public:
@@ -223,6 +224,7 @@ public:
           top += divH(a);
         }
         bool sel = _sel && m.seq == _selSeq;
+        if (sel) _selAuthor = m.sender[0] != 0;
         drawMessage(a, c, m, id.kind == model::ThreadKind::Channel, sel, mr, top, f, textW);
         hitMessage(a, mr, top, h, i);
       }
@@ -353,7 +355,8 @@ public:
     static const Hint vim[] = {{"i", "write"}, {"^v", "scroll"}, {"tab", "info"}, {"q", "back"}, {nullptr, nullptr}};
     static const Hint draft[] = {{"i", "write"}, {"ZZ", "send"}, {"ZQ", "discard"}, {"q", "back"}, {nullptr, nullptr}};
     static const Hint pick[] = {{"^v", "move"}, {"ent", "details"}, {"r", "reply"}, {"t", "thread"}, {"esc", "done"}, {nullptr, nullptr}};
-    if (_sel && !_composing) return pick;
+    static const Hint pickDm[] = {{"^v", "move"}, {"ent", "details"}, {"esc", "done"}, {nullptr, nullptr}};
+    if (_sel && !_composing) return _selAuthor ? pick : pickDm;
     if (!_composing && a.vimActive()) return _draft[0] ? draft : vim;
     static const Hint comp[] = {{"ent", "send"}, {"tab", "name"}, {"esc", "stop"}, {"fn+,/", "cursor"}, {nullptr, nullptr}};
     return _composing ? comp : view;
@@ -457,8 +460,11 @@ private:
     }
     if (!a.m().message(id, at, m)) return true;
     if (k.code == K_ENTER) { showDetails(a, m); return true; }
-    if (k.code == 'r' && k.isChar()) { reply(a, m); return true; }
-    if (k.code == 't' && k.isChar()) { openThreadFor(a, m.seq); return true; }
+    // A DM has one other person: nobody to pick out, no thread to follow. Channel and
+    // room messages carry their author.
+    if (m.sender[0] && k.code == 'r' && k.isChar()) { reply(a, m); return true; }
+    if (m.sender[0] && k.code == 't' && k.isChar()) { openThreadFor(a, m.seq); return true; }
+    if (!m.sender[0] && k.isChar() && (k.code == 'r' || k.code == 't')) return true;   // nobody to reply to
     if (k.code == K_TAB || k.code == K_PGUP || k.code == K_PGDN || k.code == K_HALF_UP || k.code == K_HALF_DN) return false;
     _sel = false;   // anything else: back to reading and writing
     return false;
@@ -478,48 +484,7 @@ private:
   }
 
   // Everything known about a message, on a scrolling page.
-  void showDetails(App& a, const model::Message& m) {
-    static char body[360];
-    int o = 0;
-    char stamp[24], t[16];
-    fmtStamp(stamp, sizeof stamp, a.m().now(), m.ts);
-    snprintf(t, sizeof t, "%s", m.outgoing ? "me" : m.sender[0] ? m.sender : "");
-    o += snprintf(body + o, sizeof body - o, "%s%s%s\n", t, t[0] ? " " : "", stamp);
-    if (m.outgoing) {
-      static const char* const kStatus[] = {"", "sending", "sent", "delivered", "failed"};
-      o += snprintf(body + o, sizeof body - o, "%s", kStatus[(int)m.status % 5]);
-      if (m.retries) o += snprintf(body + o, sizeof body - o, ", %u retr%s", m.retries, m.retries == 1 ? "y" : "ies");
-      if (m.repeats) o += snprintf(body + o, sizeof body - o, ", heard %u repeat%s", m.repeats, m.repeats == 1 ? "" : "s");
-      o += snprintf(body + o, sizeof body - o, "\n");
-    } else {
-      if (m.hops < 0) o += snprintf(body + o, sizeof body - o, "Route: direct\n");
-      else if (m.hops == 0) o += snprintf(body + o, sizeof body - o, "Route: heard direct\n");
-      else o += snprintf(body + o, sizeof body - o, "Route: %d hop%s\n", m.hops, m.hops == 1 ? "" : "s");
-      if (m.pathSize && m.pathN) {
-        o += snprintf(body + o, sizeof body - o, "Via:");
-        for (int i = 0; i < m.pathN && o < (int)sizeof body - 40; i++) {
-          const uint8_t* h = m.path + i * m.pathSize;
-          char name[model::NAME_LEN];
-          if (a.m().relayName(h, m.pathSize, name, sizeof name)) {
-            o += snprintf(body + o, sizeof body - o, " %s", name);
-          } else {
-            o += snprintf(body + o, sizeof body - o, " ");
-            for (int b = 0; b < m.pathSize; b++) o += snprintf(body + o, sizeof body - o, "%02x", h[b]);
-          }
-          if (i + 1 < m.pathN) o += snprintf(body + o, sizeof body - o, " >");
-        }
-        if (m.hops > m.pathN) o += snprintf(body + o, sizeof body - o, " ... (+%d)", m.hops - m.pathN);
-        o += snprintf(body + o, sizeof body - o, "\n");
-      }
-      if (m.snr_x4 != INT8_MIN) {
-        char snr[8];
-        fmtSnr(snr, sizeof snr, m.snr_x4);
-        o += snprintf(body + o, sizeof body - o, "Signal: %s dB SNR\n", snr);
-      }
-    }
-    o += snprintf(body + o, sizeof body - o, "\n%s", m.text);
-    openText(a, "Message", body);
-  }
+  void showDetails(App& a, const model::Message& m) { openInfo(a, m, id.kind == model::ThreadKind::Channel); }
 
   struct Fetch { App* a; model::ThreadId id; };
 
@@ -670,6 +635,7 @@ private:
   uint32_t _divSeq = 0;                  // the first new message (0: no "New" line)
   bool _toDivider = false;               // scroll to it on the next draw
   bool _sel = false, _ensureSel = false; // a message is picked (_selSeq), scroll it into view
+  bool _selAuthor = false;               // the picked message names its author (not a DM)
   uint32_t _selSeq = 0, _lowSeq = 0;     // ... and the lowest message showing, which Right picks
   int _tabFrom = -1, _tabIdx = 0;        // Tab completion: where the @ is, which name is in
   char _tabPartial[model::NAME_LEN] = {};
@@ -677,6 +643,128 @@ private:
 
 ConversationScreen s_conv;
 void ConversationScreen::s_roomLoginStarted() { s_conv._loggingIn = true; }
+
+// What is known about one message, in the colours the list uses: the sender in the
+// chat colour (bold), "me" in the accent, a mention on its band, the text as is.
+class InfoScreen : public Screen {
+public:
+  const char* title(App&) override { return "Message"; }
+
+  void draw(App& a, Canvas& c, const Rect& r) override {
+    const mc_font_t* f = a.fMed();
+    const mc_font_t* bf = a.fBody();
+    const int lh = f->height + 2, x0 = r.x + 8;
+    int y = r.y + 4 - scroll;
+    char t[24], v[48];
+
+    // Who and when, as in the list.
+    int x = x0;
+    if (m.outgoing) {
+      c.text(x + 1, y, "me", f, C_ACCENT);
+      x = c.text(x, y, "me", f, C_ACCENT) + 8;
+    } else if (m.sender[0]) {
+      c.text(x + 1, y, m.sender, f, C_CHAT, -1, r.w - 90);
+      x = c.text(x, y, m.sender, f, C_CHAT, -1, r.w - 90) + 8;
+    }
+    fmtStamp(t, sizeof t, a.m().now(), m.ts);
+    c.text(x, y, t, f, C_DIM);
+    y += lh + 2;
+
+    if (m.outgoing) {
+      static const char* const kStatus[] = {"", "sending", "sent", "delivered", "failed"};
+      static const uint8_t kCol[] = {C_DIM, C_WARN, C_DIM, C_OK, C_ERR};
+      int st = (int)m.status % 5;
+      y = row(c, f, x0, y, lh, "Status", kStatus[st], kCol[st]);
+      if (m.retries) { snprintf(v, sizeof v, "%u", m.retries); y = row(c, f, x0, y, lh, "Retries", v, C_WARN); }
+      if (m.repeats) { snprintf(v, sizeof v, "heard %u time%s", m.repeats, m.repeats == 1 ? "" : "s"); y = row(c, f, x0, y, lh, "Repeats", v, C_OK); }
+    } else {
+      if (m.hops < 0) y = row(c, f, x0, y, lh, "Route", "direct", C_OK);
+      else if (m.hops == 0) y = row(c, f, x0, y, lh, "Route", "heard direct", C_OK);
+      else {
+        snprintf(v, sizeof v, "%d hop%s", m.hops, m.hops == 1 ? "" : "s");
+        y = row(c, f, x0, y, lh, "Route", v, C_DIM);
+        // Each relay: its prefix, and its name where one repeater or room matches.
+        for (int i = 0; i < m.pathN; i++) {
+          const uint8_t* h = m.path + i * m.pathSize;
+          char hex[8] = {}, name[model::NAME_LEN];
+          for (int b = 0; b < m.pathSize && b < 3; b++) snprintf(hex + b * 2, 3, "%02x", h[b]);
+          bool known = a.m().relayName(h, m.pathSize, name, sizeof name);
+          snprintf(t, sizeof t, "%d", i + 1);
+          int xx = c.text(x0 + 8, y, t, f, C_DIM);
+          xx = c.text(xx + 6, y, hex, f, C_ACCENT);
+          if (known) c.text(xx + 8, y, name, f, C_RPT, -1, r.x + r.w - xx - 12);
+          y += lh;
+        }
+        if (m.hops > m.pathN) {
+          snprintf(v, sizeof v, "+%d more not kept", m.hops - m.pathN);
+          c.text(x0 + 8, y, v, f, C_DIM);
+          y += lh;
+        }
+      }
+      if (m.snr_x4 != INT8_MIN) {
+        char snr[8];
+        fmtSnr(snr, sizeof snr, m.snr_x4);
+        snprintf(v, sizeof v, "%s dB", snr);
+        y = row(c, f, x0, y, lh, "SNR", v, snrColor(m.snr_x4));
+      }
+    }
+
+    // The text, wrapped, mentions on their band.
+    y += 4;
+    c.hline(r.x + 6, y, r.w - 12, C_DIM);
+    y += 5;
+    DrawCtx d{&c, bf, x0, y, C_TEXT, false};
+    int lines = wrapText(m.text, bf, r.w - 16, drawLine, &d);
+    y += lines * bf->height + 4;
+
+    int total = y + scroll - r.y;
+    maxScroll = total > r.h ? total - r.h : 0;
+    if (scroll > maxScroll) scroll = maxScroll;
+    drawScrollbar(c, r, total, scroll, r.h);
+  }
+
+  void onKey(App& a, const Key& k) override {
+    switch (k.code) {
+      case K_ESC: a.pop(); return;
+      case K_UP: scroll -= 14; break;
+      case K_DOWN: scroll += 14; break;
+      case K_PGUP: case K_HALF_UP: scroll -= 80; break;
+      case K_PGDN: case K_HALF_DN: scroll += 80; break;
+      case K_HOME: scroll = 0; break;
+      case K_END: scroll = maxScroll; break;
+      default: return;
+    }
+    if (scroll < 0) scroll = 0;
+    if (scroll > maxScroll) scroll = maxScroll;
+    a.invalidate();
+  }
+
+  const Hint* hints(App&) override {
+    static const Hint h[] = {{"^v", "scroll"}, {"esc", "back"}, {nullptr, nullptr}};
+    return h;
+  }
+
+  model::Message m;
+  bool chan = false;
+  int scroll = 0, maxScroll = 0;
+
+private:
+  // "Label  value": the label dim, the value in its colour.
+  static int row(Canvas& c, const mc_font_t* f, int x, int y, int lh, const char* label, const char* value, uint8_t col) {
+    int vx = c.text(x, y, label, f, C_DIM) + 8;
+    c.text(vx, y, value, f, col);
+    return y + lh;
+  }
+};
+
+InfoScreen s_info;
+
+void openInfo(App& a, const model::Message& m, bool chan) {
+  s_info.m = m;
+  s_info.chan = chan;
+  s_info.scroll = 0;
+  a.push(&s_info);
+}
 
 // A thread found by following mentions back: its messages from the oldest, one picked.
 // Enter takes you to it in the whole conversation.

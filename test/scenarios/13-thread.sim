@@ -36,3 +36,13 @@ shot thread-tab
 key tab
 shot thread-tab-next
 key esc
+# A DM has one other person: no reply or thread keys, and the hints leave them out.
+key esc
+key q
+key down
+key enter
+key l
+shot thread-dm-picked
+key r
+key t
+shot thread-dm-no-reply

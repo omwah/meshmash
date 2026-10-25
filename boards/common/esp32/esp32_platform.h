@@ -15,6 +15,7 @@ public:
   model::Gps gps() override;
   void setGpsPower(bool on) override;
   fs::FS* sd() override;
+  void sdSpace(uint32_t& usedKb, uint32_t& totalKb) override;
   void reboot() override;
   bool blePairing() override { return blePairingFn && blePairingFn(); }
   bool (*blePairingFn)() = nullptr;

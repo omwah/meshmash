@@ -91,6 +91,37 @@ fails. The firmware then shows "No storage partition" at boot. To fix an
 install like that, install again from the `-full` image or over WiFi, or add
 a `spiffs` partition in Launcher's Partition Manager.
 
+### Message history on the card (T-Deck)
+
+With an SD card in, the T-Deck keeps the message history on it (`/meshmash/msgs.bin`, the read
+marks and the older history beside it) and leaves the flash alone. The first boot with a card
+moves what the flash held over and deletes it there. Without a card the newest 256 messages are
+kept in the flash, and the next boot with a card merges them in. Diagnostics, last page, shows
+where the ring is (`sd` or `fl`). The identity, contacts, channels and settings stay in the flash.
+
+### A larger storage partition on the T-Deck
+
+Whatever size the installer asks for, Launcher makes the `spiffs` partition its own default
+size, 448 KB, and keeps an existing one as it is. About 404 KB of that is usable. The T-Deck
+keeps its newest 256 messages there (about 53 KB) beside the identity, contacts and settings,
+and older ones go to the SD card. That fits, but SPIFFS slows down and then refuses writes
+when it is nearly full. Diagnostics, last page, shows the `flash` meter: yellow from 75%, red
+from 90%. A node with many contacts or an install that has been rewritten many times can get
+there. The remedy is a bigger partition. The T-Deck has 16 MB of flash, so there is room.
+
+1. Back up first: Menu > Backup & restore > Back up now, with message history on, to the SD card.
+2. In Launcher's Partition Manager (on the device, or the WebUI's partition page), look for
+   free space after the `spiffs` partition: the T-Deck this was checked on had 4.5 MB
+   unallocated right behind it (the WebUI lists these as `freeRanges`). Make `spiffs` larger
+   into it, 1 MB or more (2 MB is plenty). If the manager cannot resize, delete `spiffs` and add
+   a data partition named `spiffs` of type SPIFFS in the same place. Apply: Launcher writes the
+   table and restarts. The wording of the buttons differs between Launcher versions.
+3. Start MeshMash again. The new partition is empty and the firmware formats it at boot; it
+   offers to restore from the card's backup.
+
+Flashing the `-tdeck-full.bin` image at `0x0` with esptool or a web flasher also gives a large
+`spiffs` partition (3.4 MB, from the firmware's own table), but replaces Launcher.
+
 Launcher has its own partition layout, so settings stored on the internal
 flash may not survive switching apps. Turn on Settings > Backup & restore >
 Auto-backup to SD before switching. When the firmware starts with nothing on flash and finds a

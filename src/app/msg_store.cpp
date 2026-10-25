@@ -67,19 +67,132 @@ bool MessageStore::readRec(int slot, Rec& r) {
   return ok;
 }
 
+// Only builds with a ring other than the default size carry this (the Cardputer's flash is tight
+// and its ring has never changed size).
+#if MSG_RING_RECORDS != 512
+// The ring's size is a build setting. A file made for another size is rebuilt once, at boot: each
+// record goes to the slot its seq gives here, and the older one of two that share a slot goes to
+// the card (kept in the archive, shown when scrolling back).
+void MessageStore::fitRing() {
+  File f = _fs->exists(_file) ? _fs->open(_file, "r") : File();
+  if (!f) return;
+  const size_t want = (size_t)CAPACITY * sizeof(Rec), have = f.size();
+  if (!have || have == want || have % sizeof(Rec)) { f.close(); return; }
+  f.close();
+  if (rebuildRing()) return;   // through the card: the old file goes before the new one is written
+  f = _fs->open(_file, "r");
+  if (!f) return;
+  char tmp[40];
+  snprintf(tmp, sizeof tmp, "%s.new", _file);
+  _fs->remove(tmp);
+  Rec z, r, occ;
+  memset(&z, 0, sizeof z);
+  File o = _fs->open(tmp, "w", true);
+  bool ok = (bool)o;
+  for (int i = 0; ok && i < CAPACITY; i++) ok = o.write((const uint8_t*)&z, sizeof z) == sizeof z;
+  if (o) o.close();
+  o = ok ? _fs->open(tmp, "r+") : File();
+  ok = ok && (bool)o;
+  uint32_t moved = 0;
+  for (size_t at = 0; ok && at < have; at += sizeof(Rec)) {
+    if (!f.seek(at) || f.read((uint8_t*)&r, sizeof r) != sizeof r) { ok = false; break; }
+    if (!r.seq) continue;
+    uint32_t pos = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
+    ok = o.seek(pos) && o.read((uint8_t*)&occ, sizeof occ) == sizeof occ;
+    if (!ok) break;
+    if (occ.seq && occ.seq > r.seq) {   // the newer one is there already
+      if (_sd) archive(r);
+    } else {
+      if (occ.seq && _sd) archive(occ);
+      ok = o.seek(pos) && o.write((const uint8_t*)&r, sizeof r) == sizeof r;
+    }
+    moved++;
+  }
+  f.close();
+  if (o) o.close();
+  if (ok) {
+    _fs->remove(_file);
+    ok = _fs->rename(tmp, _file);
+  }
+  if (!ok) _fs->remove(tmp);   // the old file stays as it was
+  else _stats.resized = moved;
+}
+
+// Rebuild the ring file through the card, which holds the new ring while the flash file is deleted
+// and written again: the flash never has to hold both, and a file the flash will no longer open
+// for writing is replaced by a fresh one. Records that share a slot keep the newer one; the older
+// goes to the archive. Needs the card.
+bool MessageStore::rebuildRing() {
+  if (!_sd) return false;
+  File f = _fs->exists(_file) ? _fs->open(_file, "r") : File();
+  if (!f) return false;
+  const size_t have = f.size(), want = (size_t)CAPACITY * sizeof(Rec);
+  if (!have || have % sizeof(Rec)) { f.close(); return false; }
+  const char* tmp = "/meshmash/ring.tmp";
+  _sd->mkdir("/meshmash");
+  _sd->remove(tmp);
+  Rec z, r, occ;
+  memset(&z, 0, sizeof z);
+  File o = _sd->open(tmp, "w", true);
+  bool ok = (bool)o;
+  for (int i = 0; ok && i < CAPACITY; i++) ok = o.write((const uint8_t*)&z, sizeof z) == sizeof z;
+  if (o) o.close();
+  o = ok ? _sd->open(tmp, "r+") : File();
+  ok = ok && (bool)o;
+  uint32_t moved = 0;
+  for (size_t at = 0; ok && at < have; at += sizeof(Rec)) {
+    if (!f.seek(at) || f.read((uint8_t*)&r, sizeof r) != sizeof r) { ok = false; break; }
+    if (!r.seq) continue;
+    uint32_t pos = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
+    ok = o.seek(pos) && o.read((uint8_t*)&occ, sizeof occ) == sizeof occ;
+    if (!ok) break;
+    if (occ.seq && occ.seq > r.seq) {
+      archive(r);
+    } else {
+      if (occ.seq) archive(occ);
+      ok = o.seek(pos) && o.write((const uint8_t*)&r, sizeof r) == sizeof r;
+    }
+    moved++;
+  }
+  f.close();
+  if (o) o.close();
+  if (!ok) { _sd->remove(tmp); return false; }   // the old file is untouched
+  // Replace the flash file. From here the card's copy is the only whole one until the end.
+  _fs->remove(_file);
+  File n = _fs->open(_file, "w", true);
+  File c = _sd->open(tmp, "r");
+  ok = n && c;
+  for (size_t at = 0; ok && at < want; at += sizeof(Rec))
+    ok = c.read((uint8_t*)&r, sizeof r) == sizeof r && n.write((const uint8_t*)&r, sizeof r) == sizeof r;
+  if (n) n.close();
+  if (c) c.close();
+  if (ok) {
+    File chk = _fs->open(_file, "r");
+    ok = chk && chk.size() == want;
+    if (chk) chk.close();
+  }
+  if (ok) _sd->remove(tmp);   // else it stays on the card for recovery
+  else _err = 5;
+  if (ok) _stats.resized = moved;
+  return ok;
+}
+#else
+void MessageStore::fitRing() {}
+bool MessageStore::rebuildRing() { return false; }
+#endif
+
 bool MessageStore::writeRec(const Rec& r) {
   // Open read/write so the rest of the ring is kept; create on first use.
   File f = _fs->exists(_file) ? _fs->open(_file, "r+") : _fs->open(_file, "w", true);
-  if (!f) return false;
+  if (!f) { _err = 1; return false; }
   uint32_t at = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
   // SPIFFS can't seek past the end of a file: grow it with empty records
   // up to this slot first.
   size_t size = f.size();
-  // A different (older) record in this slot is about to go: archive it.
-  if (_sd && at + sizeof(Rec) <= size) {
-    Rec old;
-    if (f.seek(at) && f.read((uint8_t*)&old, sizeof old) == sizeof old && old.seq && old.seq != r.seq) archive(old);
-  }
+  // A different (older) record in this slot is about to go: archive it once the new one is in.
+  Rec old;
+  bool haveOld = _sd && at + sizeof(Rec) <= size && f.seek(at) && f.read((uint8_t*)&old, sizeof old) == sizeof old &&
+                 old.seq && old.seq != r.seq;
   bool ok = true;
   if (at > size) {
     static const uint8_t zeros[64] = {};
@@ -89,34 +202,123 @@ bool MessageStore::writeRec(const Rec& r) {
       ok = f.write(zeros, n) == n;
       left -= n;
     }
+    if (!ok) _err = 2;
   }
-  ok = ok && f.seek(at) && f.write((const uint8_t*)&r, sizeof r) == sizeof r;
+  if (ok) {
+    ok = f.seek(at) && f.write((const uint8_t*)&r, sizeof r) == sizeof r;
+    if (!ok) _err = 3;
+  }
+  _stats.ringBytes = (uint32_t)(at + sizeof(Rec) > size ? at + sizeof(Rec) : size);
   f.close();
+  // A full flash can take the write and lose it at close: read the record back.
+  if (ok) {
+    Rec back;
+    ok = readRec((int)(r.seq % CAPACITY), back) && back.seq == r.seq && back.key == r.key;
+    if (!ok) _err = 4;
+  }
+  if (ok && haveOld) archive(old) ? _stats.archived++ : _stats.archiveFails++;
   return ok;
 }
 
-bool MessageStore::begin(fs::FS* fs, const char* tag) {
+#ifdef MC_HISTORY_ON_SD
+// The history moved to the card: what the flash still holds (the ring, the read marks, the hidden
+// list) is merged in and then deleted there, which frees the flash. A file that cannot be moved
+// stays where it is.
+void MessageStore::adoptFrom(fs::FS* flash, const char* tag) {
+  const char* tp = tag && tag[0] ? tag : "";
+  const char* dash = tag && tag[0] ? "-" : "";
+  char fr[40], fread[40], fhid[40];
+  snprintf(fr, sizeof fr, "/ui/%s%smsgs.bin", tp, dash);
+  snprintf(fread, sizeof fread, "/ui/%s%sread.bin", tp, dash);
+  snprintf(fhid, sizeof fhid, "/ui/%s%shidden.bin", tp, dash);
+  const size_t want = (size_t)CAPACITY * sizeof(Rec);
+  if (flash->exists(fr)) {
+    File src = flash->open(fr, "r");
+    bool ok = src && src.size() % sizeof(Rec) == 0;
+    if (ok && !_fs->exists(_file)) {   // no ring on the card yet: an empty one
+      Rec z;
+      memset(&z, 0, sizeof z);
+      File n = _fs->open(_file, "w", true);
+      ok = (bool)n;
+      for (int i = 0; ok && i < CAPACITY; i++) ok = n.write((const uint8_t*)&z, sizeof z) == sizeof z;
+      if (n) n.close();
+    }
+    File o = ok ? _fs->open(_file, "r+") : File();
+    ok = ok && o && o.size() == want;
+    Rec r, occ;
+    uint32_t moved = 0;
+    for (size_t at = 0; ok && at < src.size(); at += sizeof(Rec)) {
+      if (!src.seek(at) || src.read((uint8_t*)&r, sizeof r) != sizeof r) { ok = false; break; }
+      if (!r.seq) continue;
+      uint32_t pos = (uint32_t)(r.seq % CAPACITY) * sizeof(Rec);
+      ok = o.seek(pos) && o.read((uint8_t*)&occ, sizeof occ) == sizeof occ;
+      if (!ok) break;
+      if (occ.seq == r.seq) { moved++; continue; }   // already there
+      if (occ.seq && occ.seq > r.seq) {
+        archive(r);
+      } else {
+        if (occ.seq) archive(occ);
+        ok = o.seek(pos) && o.write((const uint8_t*)&r, sizeof r) == sizeof r;
+      }
+      moved++;
+    }
+    if (src) src.close();
+    if (o) o.close();
+    if (ok) {
+      flash->remove(fr);
+      _stats.resized += moved;
+    }
+  }
+  auto move = [&](const char* from, const char* to) {
+    if (!flash->exists(from)) return;
+    bool ok = true;
+    if (!_fs->exists(to)) {
+      File a = flash->open(from, "r");
+      File b = _fs->open(to, "w", true);
+      ok = a && b;
+      uint8_t buf[64];
+      for (int n; ok && (n = (int)a.read(buf, sizeof buf)) > 0;) ok = b.write(buf, n) == (size_t)n;
+      if (a) a.close();
+      if (b) b.close();
+    }
+    if (ok) flash->remove(from);
+  };
+  move(fread, _readFile);
+  move(fhid, _hiddenFile);
+}
+#endif
+
+bool MessageStore::begin(fs::FS* fs, const char* tag, fs::FS* flash) {
   _fs = fs;
+  _onCard = flash != nullptr;
+  const char* dir = _onCard ? "/meshmash" : "/ui";
   // The local node's history keeps its original file names.
   if (tag && tag[0]) {
-    snprintf(_file, sizeof _file, "/ui/%s-msgs.bin", tag);
-    snprintf(_readFile, sizeof _readFile, "/ui/%s-read.bin", tag);
-    snprintf(_hiddenFile, sizeof _hiddenFile, "/ui/%s-hidden.bin", tag);
+    snprintf(_file, sizeof _file, "%s/%s-msgs.bin", dir, tag);
+    snprintf(_readFile, sizeof _readFile, "%s/%s-read.bin", dir, tag);
+    snprintf(_hiddenFile, sizeof _hiddenFile, "%s/%s-hidden.bin", dir, tag);
     snprintf(_archDir, sizeof _archDir, "/meshmash/history/%s", tag);
   } else {
-    snprintf(_file, sizeof _file, "/ui/msgs.bin");
-    snprintf(_readFile, sizeof _readFile, "/ui/read.bin");
-    snprintf(_hiddenFile, sizeof _hiddenFile, "/ui/hidden.bin");
+    snprintf(_file, sizeof _file, "%s/msgs.bin", dir);
+    snprintf(_readFile, sizeof _readFile, "%s/read.bin", dir);
+    snprintf(_hiddenFile, sizeof _hiddenFile, "%s/hidden.bin", dir);
     snprintf(_archDir, sizeof _archDir, "/meshmash/history");
   }
   _nThreads = 0;
   _nextSeq = 1;
-  _fs->mkdir("/ui");
+  _stats = Stats{};
+  _stats.onCard = _onCard;
+  _fs->mkdir(dir);
+  fitRing();
+#ifdef MC_HISTORY_ON_SD
+  if (flash) adoptFrom(flash, tag);
+#endif
   loadRead();
   loadHidden();
   File f = _fs->open(_file, "r");
   if (f) {
     Rec r;
+    _stats.ringBytes = (uint32_t)f.size();
     while (f.read((uint8_t*)&r, sizeof r) == sizeof r) {
       if (!r.seq) continue;
       if (r.seq >= _nextSeq) _nextSeq = r.seq + 1;
@@ -137,6 +339,7 @@ bool MessageStore::begin(fs::FS* fs, const char* tag) {
     if (!_threads[i].lastSeq) _threads[i] = _threads[--_nThreads];
     else i++;
   sortThreads();
+  _stats.flashSeq = _nextSeq - 1;
   return true;
 }
 
@@ -198,7 +401,22 @@ uint32_t MessageStore::append(const ThreadKey& k, const model::Message& m, uint3
   // Is the open window showing this conversation's newest message? (Checked
   // before the new message updates the summary.)
   bool wasNewest = _hasOpen && _open == k && atNewest();
-  if (!writeRec(r)) return 0;
+  // A write that fails (the flash is full) still shows: the message stays in the window and the
+  // chats list, and the failure is counted for Diagnostics.
+  bool saved = writeRec(r);
+  if (!saved && _err == 1 && !_rebuilt && _sd) {   // the flash will not open the ring: start it afresh
+    _rebuilt = true;
+    if (rebuildRing()) saved = writeRec(r);
+  }
+  if (saved) {
+    _stats.writes++;
+    _stats.flashSeq = r.seq;
+    _stats.lastOkTs = m.ts;
+  } else {
+    _stats.writeFails++;
+    _stats.lastErr = _err;
+    _stats.lastErrTs = m.ts;
+  }
 
   ThreadInfo* t = touch(k);
   t->lastSeq = r.seq;
@@ -320,16 +538,24 @@ void MessageStore::archivePath(const ThreadKey& k, char* out, int n) const {
            k.id[3], k.id[4], k.id[5]);
 }
 
-void MessageStore::archive(const Rec& r) {
+bool MessageStore::archive(const Rec& r) {
   char path[64];
   archivePath(r.key, path, sizeof path);
   _sd->mkdir("/meshmash");
   _sd->mkdir("/meshmash/history");
   _sd->mkdir(_archDir);
   File f = _sd->open(path, "a", true);
-  if (!f) return;
-  f.write((const uint8_t*)&r, sizeof r);   // appended in order: the file is sorted by seq
+  if (!f) return false;
+  bool ok = f.write((const uint8_t*)&r, sizeof r) == sizeof r;   // appended in order: the file is sorted by seq
   f.close();
+  return ok;
+}
+
+MessageStore::Stats MessageStore::stats() const {
+  Stats s = _stats;
+  s.nextSeq = _nextSeq;
+  s.archiveOn = _sd != nullptr;
+  return s;
 }
 
 // ---- the window
@@ -386,6 +612,45 @@ bool MessageStore::loadSeq(const ThreadKey& k, uint32_t seq, model::Message& m) 
     if (r.seq == seq) { toMessage(r, m); found = true; }
   if (a) a.close();
   return found;
+}
+
+int MessageStore::history(const ThreadKey& k, uint32_t upTo, model::Message* out, int max) {
+  if (max < 1 || max > 128) return 0;
+  uint32_t seqs[128];
+  int n = findSeqs(k, upTo + 1, true, seqs, max);
+  int got = 0;
+  bool have[128] = {};
+  auto take = [&](const Rec& r) {
+    if (!r.seq || !(r.key == k)) return;
+    int lo = 0, hi = n - 1;
+    while (lo <= hi) {   // seqs is sorted ascending
+      int mid = (lo + hi) / 2;
+      if (seqs[mid] == r.seq) {
+        if (!have[mid]) { have[mid] = true; toMessage(r, out[mid]); got++; }
+        return;
+      }
+      if (seqs[mid] < r.seq) lo = mid + 1; else hi = mid - 1;
+    }
+  };
+  Rec r;
+  File f = _fs->open(_file, "r");
+  if (f) {
+    while (f.read((uint8_t*)&r, sizeof r) == sizeof r) take(r);
+    f.close();
+  }
+  if (got < n && _sd) {
+    char path[64];
+    archivePath(k, path, sizeof path);
+    File a = _sd->exists(path) ? _sd->open(path, "r") : File();
+    if (a) {
+      while (a.read((uint8_t*)&r, sizeof r) == sizeof r) take(r);
+      a.close();
+    }
+  }
+  int w = 0;   // close the gaps of records that vanished between the scans
+  for (int i = 0; i < n; i++)
+    if (have[i]) { if (w != i) out[w] = out[i]; w++; }
+  return w;
 }
 
 int MessageStore::older() {

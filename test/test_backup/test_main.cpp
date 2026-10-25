@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <FS.h>
 #include "app/backup.h"
+#include "app/msg_store.h"
 
 using app::Backup;
 
@@ -136,9 +137,133 @@ void test_unknown_sections_are_skipped() {
   TEST_ASSERT_TRUE(f.flash.exists("/contacts3"));
 }
 
+// MessageStore::history reads a conversation back without moving the open window.
+void test_history_reads_one_conversation_in_order() {
+  Fixture f;
+  app::MessageStore st;
+  TEST_ASSERT_TRUE(st.begin(&f.flash));
+  st.setArchive(&f.sd);
+  app::ThreadKey a = app::ThreadKey::channel(0), b = app::ThreadKey::channel(1);
+  uint32_t seqs[20];
+  for (int i = 0; i < 20; i++) {
+    model::Message m = {};
+    snprintf(m.sender, sizeof m.sender, "Person %d", i);
+    snprintf(m.text, sizeof m.text, "text %d", i);
+    seqs[i] = st.append(i % 4 == 3 ? b : a, m);
+    TEST_ASSERT_NOT_EQUAL(0, seqs[i]);
+  }
+  st.open(a);
+  int before = st.count();
+  model::Message out[8];
+  int n = st.history(a, seqs[18], out, 8);
+  TEST_ASSERT_EQUAL(8, n);
+  TEST_ASSERT_EQUAL_UINT32(seqs[18], out[n - 1].seq);
+  for (int i = 1; i < n; i++) TEST_ASSERT_TRUE(out[i - 1].seq < out[i].seq);
+  // Messages 3, 7, 11, 15 belong to the other conversation.
+  for (int i = 0; i < n; i++) {
+    TEST_ASSERT_NOT_EQUAL(seqs[3], out[i].seq);
+    TEST_ASSERT_NOT_EQUAL(seqs[7], out[i].seq);
+    TEST_ASSERT_NOT_EQUAL(seqs[11], out[i].seq);
+  }
+  TEST_ASSERT_EQUAL(before, st.count());   // the window stayed put
+  TEST_ASSERT_EQUAL(3, st.history(a, seqs[2], out, 8));   // 0, 1, 2
+  TEST_ASSERT_EQUAL(0, st.history(a, 0, out, 8));
+}
+
+// A ring file made for another size (80 slots here, 40 built) is moved to the new size at boot; what
+// no longer fits goes to the archive and is still found by scrolling back.
+static void refit(bool withCard) {
+  Fixture f;
+  const int RS = 209, OLD = 80;
+  std::string ring(OLD * RS, '\0');
+  for (uint32_t seq = 1; seq <= 100; seq++) {   // a ring that has wrapped: newer seqs overwrite older
+    char* r = &ring[(seq % OLD) * RS];
+    memcpy(r, &seq, 4);
+    r[4] = 1;   // channel 0
+    snprintf(r + 25, 24, "Person");
+    snprintf(r + 49, 160, "text %u", seq);
+  }
+  f.flash.mkdir("/ui");
+  writeFile(f.flash, "/ui/msgs.bin", ring);
+  app::MessageStore st;
+  if (withCard) st.setArchive(&f.sd);
+  TEST_ASSERT_TRUE(st.begin(&f.flash));
+  TEST_ASSERT_EQUAL(OLD, (int)st.stats().resized);
+  File check = f.flash.open("/ui/msgs.bin", "r");
+  TEST_ASSERT_EQUAL((int)(app::MessageStore::CAPACITY * RS), (int)check.size());
+  check.close();
+  TEST_ASSERT_FALSE(f.flash.exists("/ui/msgs.bin.new"));
+  TEST_ASSERT_FALSE(f.sd.exists("/meshmash/ring.tmp"));
+  app::ThreadKey k = app::ThreadKey::channel(0);
+  TEST_ASSERT_EQUAL_UINT32(100, st.find(k)->lastSeq);
+  // Nothing is lost: the newest are in the ring, the rest reachable through the window and archive.
+  st.open(k);
+  TEST_ASSERT_EQUAL_UINT32(100, st.at(st.count() - 1).seq);
+  int seen = st.count();
+  if (withCard) {
+    for (int i = 0; i < 20 && st.older(); i++) seen += 0;
+    TEST_ASSERT_TRUE(st.at(0).seq < 100 - 23);   // went back past the first window, to the archive
+  }
+  // The same file again: nothing to do.
+  app::MessageStore again;
+  if (withCard) again.setArchive(&f.sd);
+  TEST_ASSERT_TRUE(again.begin(&f.flash));
+  TEST_ASSERT_EQUAL(0, (int)again.stats().resized);
+  (void)seen;
+}
+
+void test_ring_of_another_size_is_refitted() { refit(true); }
+void test_ring_of_another_size_is_refitted_without_a_card() { refit(false); }
+
+// With a card the history lives on it; what the flash held is merged in once and then removed.
+void test_history_moves_to_the_card() {
+  Fixture f;
+  const int RS = 209, CAP = app::MessageStore::CAPACITY;
+  std::string ring(CAP * RS, '\0');
+  for (uint32_t seq = 1; seq <= 30; seq++) {
+    char* r = &ring[(seq % CAP) * RS];
+    memcpy(r, &seq, 4);
+    r[4] = 1;   // channel 0
+    snprintf(r + 25, 24, "Person");
+    snprintf(r + 49, 160, "text %u", seq);
+  }
+  f.flash.mkdir("/ui");
+  writeFile(f.flash, "/ui/msgs.bin", ring);
+  writeFile(f.flash, "/ui/read.bin", std::string(11, 'R'));
+  {
+    app::MessageStore st;
+    st.setArchive(&f.sd);
+    TEST_ASSERT_TRUE(st.begin(&f.sd, nullptr, &f.flash));
+    TEST_ASSERT_TRUE(st.stats().onCard);
+    TEST_ASSERT_FALSE(f.flash.exists("/ui/msgs.bin"));   // the flash is left alone from now on
+    TEST_ASSERT_FALSE(f.flash.exists("/ui/read.bin"));
+    TEST_ASSERT_TRUE(f.sd.exists("/meshmash/msgs.bin"));
+    TEST_ASSERT_TRUE(f.sd.exists("/meshmash/read.bin"));
+    TEST_ASSERT_EQUAL_UINT32(30, st.find(app::ThreadKey::channel(0))->lastSeq);
+    model::Message m = {};
+    snprintf(m.sender, sizeof m.sender, "Other");
+    snprintf(m.text, sizeof m.text, "after");
+    uint32_t s = st.append(app::ThreadKey::channel(0), m);
+    TEST_ASSERT_EQUAL_UINT32(31, s);
+    TEST_ASSERT_EQUAL(0, (int)st.stats().writeFails);
+    TEST_ASSERT_FALSE(f.flash.exists("/ui/msgs.bin"));
+  }
+  // The next boot reads it back from the card.
+  app::MessageStore again;
+  again.setArchive(&f.sd);
+  TEST_ASSERT_TRUE(again.begin(&f.sd, nullptr, &f.flash));
+  TEST_ASSERT_EQUAL_UINT32(31, again.find(app::ThreadKey::channel(0))->lastSeq);
+  again.open(app::ThreadKey::channel(0));
+  TEST_ASSERT_EQUAL_UINT32(31, again.at(again.count() - 1).seq);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_round_trip);
+  RUN_TEST(test_history_moves_to_the_card);
+  RUN_TEST(test_ring_of_another_size_is_refitted);
+  RUN_TEST(test_ring_of_another_size_is_refitted_without_a_card);
+  RUN_TEST(test_history_reads_one_conversation_in_order);
   RUN_TEST(test_identity_can_be_left_out);
   RUN_TEST(test_corruption_is_detected_and_nothing_written);
   RUN_TEST(test_truncated_file_is_invalid);

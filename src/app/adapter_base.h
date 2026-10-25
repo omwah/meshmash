@@ -79,6 +79,7 @@ public:
   uint16_t unreadIn(model::ThreadId t) const override;
   int loadOlder(model::ThreadId t) override;
   int loadNewer(model::ThreadId t) override;
+  int history(model::ThreadId t, uint32_t upTo, model::Message* out, int max) override;
   bool atNewest(model::ThreadId t) const override;
   void clearHistory(model::ThreadId t) override;
   uint16_t unreadTotal() const override;
@@ -232,6 +233,7 @@ protected:
   uint32_t _rev = 1;
   mutable MessageStore _msgs;
   mutable ThreadKey _openKey{};
+  mutable uint32_t _openRetry = 0;
   mutable bool _hasOpen = false;
   UiPrefs _ui{};
   model::Prefs _prefs{};

@@ -396,6 +396,16 @@ bool MockModel::message(ThreadId t, int i, Message& out) const {
   return false;
 }
 
+int MockModel::history(ThreadId t, uint32_t upTo, Message* out, int max) {
+  int n = 0;
+  for (int j = 0; j < _nMsgs; j++) {
+    if (!(_msgs[j].t == t) || _msgs[j].m.seq > upTo) continue;
+    if (n == max) { memmove(out, out + 1, sizeof(Message) * (max - 1)); n--; }
+    out[n++] = _msgs[j].m;
+  }
+  return n;
+}
+
 void MockModel::clearHistory(ThreadId t) {
   int w = 0;
   for (int r = 0; r < _nMsgs; r++)
@@ -581,6 +591,8 @@ Diag MockModel::diag() const {
   d.charging = false;
   d.contacts = (uint16_t)_nContacts;
   d.contactsMax = 150;
+  d.flashUsedKb = 412;
+  d.flashTotalKb = 1408;
   d.channels = (uint8_t)_nChannels;
   d.channelsMax = 8;
   return d;

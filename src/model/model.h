@@ -112,6 +112,20 @@ struct Diag {
   uint8_t battPct;
   bool charging;
   uint16_t contacts, contactsMax;
+  uint32_t flashUsedKb, flashTotalKb;   // the node's file system (0: unknown)
+  // Message storage, for finding why history goes missing.
+  uint32_t msgWriteFails;               // messages the file system would not keep
+  uint32_t msgWrites, archived, archiveFails;
+  uint8_t msgErr;                       // why the last write failed: 0 none, 1 open, 2 grow, 3 write, 4 lost
+  uint32_t msgErrTs, msgOkTs;           // when the last write failed / was kept
+  uint32_t msgSeqFlash, msgSeqNext, msgRingBytes;
+  bool archiveOn;                       // a card was there at boot, so old messages are kept on it
+  bool msgOnCard;                       // the history lives on the card, not in the flash
+  uint32_t sdUsedKb, sdTotalKb;
+  // The open conversation's window, against what the conversation holds.
+  uint16_t winN;
+  uint32_t winFirst, winLast, winThreadLast;
+  bool winNewest;
   uint8_t channels, channelsMax;
 };
 
@@ -293,6 +307,9 @@ public:
   virtual int loadOlder(ThreadId t) = 0;
   virtual int loadNewer(ThreadId t) = 0;
   virtual bool atNewest(ThreadId t) const = 0;
+  // Up to `max` messages of a conversation, oldest first, ending with the one at `upTo` (a
+  // sequence number) or the last one before it; the window shown by message() stays put.
+  virtual int history(ThreadId t, uint32_t upTo, Message* out, int max) = 0;
   virtual void clearHistory(ThreadId t) = 0;
   virtual uint16_t unreadTotal() const = 0;
   virtual bool send(ThreadId t, const char* text) = 0;

@@ -301,7 +301,15 @@ bool AdapterBase::thread(int i, model::Thread& out) const {
 int AdapterBase::messageCount(model::ThreadId t) const {
   ThreadKey k;
   if (!threadKeyFor(t, k)) return 0;
-  if (!_hasOpen || !(_openKey == k)) {
+  // An empty window for a conversation that has messages (a read that failed): try again, once
+  // per change, instead of staying empty until another chat is opened.
+  bool empty = _hasOpen && _openKey == k && !_msgs.count() && _openRetry != _rev;
+  if (empty) {
+    const ThreadInfo* ti = _msgs.find(k);
+    empty = ti && ti->lastSeq;
+  }
+  if (!_hasOpen || !(_openKey == k) || empty) {
+    _openRetry = _rev;
     _msgs.open(k);
     _openKey = k;
     _hasOpen = true;
@@ -328,6 +336,12 @@ int AdapterBase::loadNewer(model::ThreadId t) {
   int n = _msgs.newer();
   if (n) _rev++;
   return n;
+}
+
+int AdapterBase::history(model::ThreadId t, uint32_t upTo, model::Message* out, int max) {
+  ThreadKey k;
+  if (!threadKeyFor(t, k)) return 0;
+  return _msgs.history(k, upTo, out, max);
 }
 
 bool AdapterBase::atNewest(model::ThreadId t) const {

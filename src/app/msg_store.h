@@ -47,7 +47,9 @@ public:
 
   // `tag` names a separate history (a remote node's: files /ui/<tag>-*.bin and
   // an archive folder <tag>/ on the card); null for the local node's.
-  bool begin(fs::FS* fs, const char* tag = nullptr);
+  // With `flash` the history lives on the card (`fs`, files in /meshmash) and whatever an earlier
+  // run left in the flash (/ui) is moved over, then deleted from it; without, on `fs` itself.
+  bool begin(fs::FS* fs, const char* tag = nullptr, fs::FS* flash = nullptr);
   // Removable storage for the archive, or null (no card).
   void setArchive(fs::FS* sd) { _sd = sd; }
   // Append a message; returns its sequence number (0 on failure).
@@ -59,6 +61,21 @@ public:
   // "sender: "), from flash.
   bool lastText(const ThreadKey& k, char* out, int n);
   bool ackOf(uint32_t seq, uint32_t& ack);
+
+  // What the ring and the archive have done since boot, for Diagnostics.
+  struct Stats {
+    uint32_t writes, writeFails;       // appends the flash kept / refused
+    uint32_t archived, archiveFails;   // records moved to the card / that could not be
+    uint8_t lastErr;                   // why the last write failed: 0 none, 1 open, 2 grow, 3 write, 4 lost (not there on reading back), 5 rebuild
+    uint32_t lastErrTs, lastOkTs;      // message time of the last failed / kept write
+    uint32_t flashSeq, nextSeq;        // last seq in the ring / next to hand out
+  uint32_t resized;                  // records moved when the ring changed size at boot (0: none)
+    uint32_t ringBytes;                // size of the ring file as last seen
+    bool archiveOn;                    // a card was there when the store started
+  bool onCard;                       // the ring and read marks are on the card, not the flash
+  };
+  Stats stats() const;
+  uint32_t writeFailures() const { return _stats.writeFails; }
 
   int threadCount() const { return _nThreads; }
   const ThreadInfo* thread(int i) const;          // most recent first
@@ -78,6 +95,9 @@ public:
   int older();
   int newer();
   bool atNewest() const;     // the window ends with the conversation's last message
+  // The `max` messages of a conversation with seq <= upTo, oldest first, read from the ring and
+  // the archive without touching the window; returns how many.
+  int history(const ThreadKey& k, uint32_t upTo, model::Message* out, int max);
   // Delete a conversation's messages (ring and archive).
   void clear(const ThreadKey& k);
 
@@ -86,7 +106,10 @@ public:
 private:
   struct Rec;
   bool readRec(int slot, Rec& r);
-  void archive(const Rec& r);
+  bool rebuildRing();
+  void adoptFrom(fs::FS* flash, const char* tag);
+  void fitRing();   // an older ring file of another size: move its records into this size
+  bool archive(const Rec& r);
   void archivePath(const ThreadKey& k, char* out, int n) const;
   // Up to `max` sequence numbers of this conversation, the ones closest to
   // `from` going back (older) or forward; from the ring, then the archive.
@@ -107,6 +130,10 @@ private:
   char _file[32] = "/ui/msgs.bin", _readFile[32] = "/ui/read.bin", _hiddenFile[32] = "/ui/hidden.bin";
   char _archDir[48] = "/meshmash/history";
   uint32_t _nextSeq = 1;
+  Stats _stats{};
+  bool _onCard = false;
+  uint8_t _err = 0;
+  bool _rebuilt = false;   // the ring was rebuilt since boot after a failed open (once)
   ThreadInfo _threads[MAX_THREADS];
   int _nThreads = 0;
   ThreadKey _hidden[MAX_HIDDEN];

@@ -21,6 +21,7 @@ public:
   virtual void setGpsPower(bool on) { (void)on; }
   // Removable storage for backups; null when no card is present.
   virtual fs::FS* sd() { return nullptr; }
+  virtual void sdSpace(uint32_t& usedKb, uint32_t& totalKb) { usedKb = totalKb = 0; }
   virtual void reboot() = 0;
   // A phone has connected over Bluetooth and is not yet authenticated.
   virtual bool blePairing() { return false; }

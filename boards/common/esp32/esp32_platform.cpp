@@ -50,6 +50,13 @@ fs::FS* Esp32Platform::sd() {
   return _sdOk ? &SD : nullptr;
 }
 
+void Esp32Platform::sdSpace(uint32_t& usedKb, uint32_t& totalKb) {
+  usedKb = totalKb = 0;
+  if (!_sdOk) return;
+  usedKb = (uint32_t)(SD.usedBytes() / 1024);
+  totalKb = (uint32_t)(SD.totalBytes() / 1024);
+}
+
 void Esp32Platform::reboot() { ESP.restart(); }
 
 uint16_t Esp32Platform::batteryMv() { return board.getBattMilliVolts(); }

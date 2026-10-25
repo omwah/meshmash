@@ -158,8 +158,14 @@ void RemoteAdapter::openHistory() {
   snprintf(_histTag, sizeof _histTag, "%s", tag);
   snprintf(_bkPath[0], sizeof _bkPath[0], "%s/remote-%s.bin", Backup::DIR, tag);
   snprintf(_bkPath[1], sizeof _bkPath[1], "%s/remote-%s.bak", Backup::DIR, tag);
+  fs::FS* card = _plat.sd();
+  _msgs.setArchive(card);   // first: a ring of another size moves its extra records there
+#ifdef MC_HISTORY_ON_SD
+  if (card) _msgs.begin(card, tag, _fs);
+  else _msgs.begin(_fs, tag);
+#else
   _msgs.begin(_fs, tag);
-  _msgs.setArchive(_plat.sd());
+#endif
   _hasOpen = false;
   loadCache();
 }

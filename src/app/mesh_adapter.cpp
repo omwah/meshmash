@@ -47,8 +47,15 @@ void MeshAdapter::begin(MyMesh& mesh, DataStore& store, mesh::RTCClock& rtc, fs:
   _rtc = &rtc;
   _bleBuilt = bleBuilt;
   loadUiPrefs(fs);
+  fs::FS* card = _plat.sd();
+  _msgs.setArchive(card);   // before begin: a ring of another size moves its extra records there
+#ifdef MC_HISTORY_ON_SD
+  // With a card the history lives on it and the flash is left alone; without, in the flash.
+  if (card) _msgs.begin(card, nullptr, &fs);
+  else _msgs.begin(&fs);
+#else
   _msgs.begin(&fs);
-  _msgs.setArchive(_plat.sd());
+#endif
   loadPasswords();
   syncPrefsFromMesh();
   _fresh = freshInstall;
@@ -880,6 +887,32 @@ model::Diag MeshAdapter::diag() const {
   d.heapFree = _plat.heapFree();
   d.heapMin = _plat.heapMin();
   d.heapMaxBlock = _plat.heapMaxBlock();
+#ifdef MC_BOARD_TDECK   // only the T-Deck's Diagnostics has the storage page
+  d.flashUsedKb = _store->getStorageUsedKb();
+  d.flashTotalKb = _store->getStorageTotalKb();
+  MessageStore::Stats ms = _msgs.stats();
+  d.msgWriteFails = ms.writeFails;
+  d.msgWrites = ms.writes;
+  d.archived = ms.archived;
+  d.archiveFails = ms.archiveFails;
+  d.msgErr = ms.lastErr;
+  d.msgErrTs = ms.lastErrTs;
+  d.msgOkTs = ms.lastOkTs;
+  d.msgSeqFlash = ms.flashSeq;
+  d.msgSeqNext = ms.nextSeq;
+  d.msgRingBytes = ms.ringBytes;
+  d.archiveOn = ms.archiveOn;
+  d.msgOnCard = ms.onCard;
+  _plat.sdSpace(d.sdUsedKb, d.sdTotalKb);
+  if (_hasOpen) {
+    d.winN = (uint16_t)_msgs.count();
+    d.winFirst = d.winN ? _msgs.at(0).seq : 0;
+    d.winLast = d.winN ? _msgs.at(d.winN - 1).seq : 0;
+    d.winNewest = _msgs.atNewest();
+    const ThreadInfo* ti = _msgs.find(_openKey);
+    d.winThreadLast = ti ? ti->lastSeq : 0;
+  }
+#endif
   d.battMv = getBattMilliVolts();
   d.battPct = batteryPercent(d.battMv);
   d.charging = _plat.charging();

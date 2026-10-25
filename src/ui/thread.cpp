@@ -70,17 +70,28 @@ struct Edge {
   uint8_t bridges;                  // direct enough to join two conversations (a mention, a reply to a mention)
 };
 
-// A name as a key: lower case, without the spaces around it or a leading @ (names are shown padded,
-// and a few people start theirs with an @).
+// A name as a key. People decorate their names with emoji, pad them, and the saved sender is cut at
+// 23 bytes where a mention carries the whole name, so the key is made of what survives all that:
+// the first 12 letters and digits, lower case (@, spaces, emoji, punctuation left out). A name with
+// none (all emoji, or not in Latin letters) falls back to its bytes without spaces, variation
+// selectors and joiners.
 uint32_t nameKey(const char* s) {
-  while (*s == ' ' || *s == '@') s++;
-  int n = (int)strlen(s);
-  while (n > 0 && s[n - 1] == ' ') n--;
   uint32_t h = 2166136261u;
-  for (int i = 0; i < n; i++) {
-    unsigned char c = (unsigned char)s[i];
+  int kept = 0;
+  for (const unsigned char* p = (const unsigned char*)s; *p && kept < 12; p++) {
+    unsigned char c = *p;
     if (c >= 'A' && c <= 'Z') c = (unsigned char)(c + 32);
-    h = (h ^ c) * 16777619u;
+    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) { h = (h ^ c) * 16777619u; kept++; }
+  }
+  if (kept) return h | 1;
+  int n = 0;
+  h = 2166136261u;
+  for (const unsigned char* p = (const unsigned char*)s; *p; p++) {
+    if (*p == ' ' || *p == '@') continue;
+    if (p[0] == 0xEF && p[1] == 0xB8 && p[2] == 0x8F) { p += 2; continue; }   // variation selector-16
+    if (p[0] == 0xE2 && p[1] == 0x80 && p[2] == 0x8D) { p += 2; continue; }   // zero width joiner
+    h = (h ^ *p) * 16777619u;
+    n++;
   }
   return n ? (h | 1) : 0;
 }

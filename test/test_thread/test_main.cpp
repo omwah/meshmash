@@ -566,6 +566,44 @@ void test_real_conversations_survive_hidden_mentions() {
   TEST_ASSERT_TRUE(keptMasked > keptLegacyMasked + picks / 10);   // a hidden one is often found anyway
 }
 
+void test_decorated_and_cut_names_still_match() {
+  int t[16];
+  {   // the same name with and without its emoji, and with a variation selector
+    Chat c;
+    c.add("Foo \xF0\x9F\xA4\xB7\xF0\x9F\x8F\xA1", "radio check on the repeater");   // 0  "Foo 🤷🏡"
+    c.add("Ben", "@[Foo \xF0\x9F\xA4\xB7\xF0\x9F\x8F\xA1] loud and clear");                 // 1  exact
+    c.add("Cleo", "@[Foo] same here");                                                          // 2  no emoji
+    c.add("Dev", "@[Foo \xF0\x9F\xA4\xB7\xEF\xB8\x8F] and here");                              // 3  another selector
+    int n = thread(c, 1, t);
+    TEST_ASSERT_EQUAL(4, n);
+    TEST_ASSERT_EQUAL(0, t[0]);
+  }
+  {   // a name cut at 23 bytes in the saved sender, whole in the mention
+    Chat c;
+    c.add("Mount Washington Repeate", "relay is back up");                                     // 0 (cut)
+    c.add("Ben", "@[Mount Washington Repeater West] thanks, confirmed");                       // 1
+    int n = thread(c, 1, t);
+    TEST_ASSERT_EQUAL(2, n);
+    TEST_ASSERT_EQUAL(0, t[0]);
+  }
+  {   // names that are only emoji
+    Chat c;
+    c.add("\xF0\x9F\x9A\x90\xF0\x9F\x9A\x90", "van is on the way");                       // 0
+    c.add("Ben", "@[\xF0\x9F\x9A\x90\xF0\x9F\x9A\x90] see you soon");                      // 1
+    int n = thread(c, 1, t);
+    TEST_ASSERT_EQUAL(2, n);
+  }
+  {   // different people stay different
+    Chat c;
+    c.add("Anna", "antenna on the roof");                  // 0
+    c.add("Annabelle", "battery charging is slow");        // 1
+    c.add("Ben", "@[Anna] use a bracket for the roof");    // 2
+    int n = thread(c, 2, t);
+    TEST_ASSERT_TRUE(has(t, n, 0));
+    TEST_ASSERT_FALSE(has(t, n, 1));
+  }
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_first_mention);
@@ -587,6 +625,7 @@ int main() {
   RUN_TEST(test_someone_in_two_conversations_does_not_join_them);
   RUN_TEST(test_a_mention_of_someone_not_in_view_and_duplicate_names);
   RUN_TEST(test_the_window_and_its_edges);
+  RUN_TEST(test_decorated_and_cut_names_still_match);
   RUN_TEST(test_new_algorithm_recalls_more_than_mentions_alone);
   RUN_TEST(test_real_conversations_survive_hidden_mentions);
   return UNITY_END();

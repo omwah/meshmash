@@ -16,6 +16,9 @@ public:
   void setGpsPower(bool on) override;
   fs::FS* sd() override;
   void sdSpace(uint32_t& usedKb, uint32_t& totalKb) override;
+  uint32_t cpuMhz() override;
+  uint32_t lowClockSeconds() override { return lowClockSecondsFn ? lowClockSecondsFn() : 0; }
+  uint32_t (*lowClockSecondsFn)() = nullptr;
   void reboot() override;
   bool blePairing() override { return blePairingFn && blePairingFn(); }
   bool (*blePairingFn)() = nullptr;

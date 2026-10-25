@@ -235,6 +235,11 @@ private:
             (unsigned long)(d.sdUsedKb / 1024), (unsigned long)(d.sdTotalKb / 1024));
     else
       line(n, d.archiveOn ? C_WARN : C_DIM, "sd      %s", d.archiveOn ? "gone since boot" : "no card at boot: no archive");
+    if (d.cpuMhz) {   // the idle clock: it should add up while the screen is off
+      char low[12];
+      fmtDur(low, sizeof low, d.lowClockS);
+      line(n, d.lowClockS ? C_OK : C_DIM, "cpu     %lu MHz  idle clock %s", (unsigned long)d.cpuMhz, low);
+    }
     static const char* const kErr[] = {"none", "open", "grow", "write", "lost", "rebuild"};
     char t1[12], t2[12];
     clock(d.msgOkTs, t1, sizeof t1);

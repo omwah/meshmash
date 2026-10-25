@@ -105,6 +105,7 @@ static void setupRemote() {
   ui_app->setLed(&led);
   idle.begin();
   ui_app->setIdleHook(&idle);
+  platform.lowClockSecondsFn = [] { return idle.lowSeconds(); };
   ui_app->begin(ui::screens::boot());
   board.onBootComplete();
   Serial.printf("meshmash %s (remote node mode): keyboard %s, touch %s, sd %s, heap %u (min %u)\n",
@@ -147,6 +148,7 @@ void setup() {
   ui_app->setLed(&led);
   idle.begin();
   ui_app->setIdleHook(&idle);
+  platform.lowClockSecondsFn = [] { return idle.lowSeconds(); };
   ui_app->begin(ui::screens::boot());
   if (!fs_ok) ui_app->toast("No storage partition: nothing is saved", ui::C_ERR);
   ui_app->loop(millis());

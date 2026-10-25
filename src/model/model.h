@@ -132,6 +132,7 @@ struct Diag {
   bool archiveOn;                       // a card was there at boot, so old messages are kept on it
   bool msgOnCard;                       // the history lives on the card, not in the flash
   uint32_t sdUsedKb, sdTotalKb;
+  uint32_t cpuMhz, lowClockS;           // the CPU clock now, and seconds spent on the slower idle clock
   // The open conversation's window, against what the conversation holds.
   uint16_t winN;
   uint32_t winFirst, winLast, winThreadLast;
@@ -321,10 +322,10 @@ public:
   // Up to `max` messages of a conversation, oldest first, ending with the one at `upTo` (a
   // sequence number) or the last one before it; the window shown by message() stays put.
   virtual int history(ThreadId t, uint32_t upTo, Message* out, int max) = 0;
-  virtual void clearHistory(ThreadId t) = 0;
   // Up to `before` messages up to and including the one at `seq`, and up to `after` messages after it,
   // oldest first (at most `max` in all); the window shown by message() stays put.
   virtual int historyAround(ThreadId t, uint32_t seq, int before, int after, Message* out, int max) = 0;
+  virtual void clearHistory(ThreadId t) = 0;
   virtual uint16_t unreadTotal() const = 0;
   virtual bool send(ThreadId t, const char* text) = 0;
 

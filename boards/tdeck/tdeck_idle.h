@@ -21,12 +21,22 @@ public:
     _k.setSlow(idle);
     _t.setSlow(idle);
 #if MC_IDLE_CPU_MHZ
-    if (_active > MC_IDLE_CPU_MHZ) setCpuFrequencyMhz(idle ? MC_IDLE_CPU_MHZ : _active);
+    if (_active > MC_IDLE_CPU_MHZ) {
+      uint32_t now = millis();
+      if (_low) _lowMs += now - _lowSince;   // the stretch that ends now
+      setCpuFrequencyMhz(idle ? MC_IDLE_CPU_MHZ : _active);
+      _low = idle;
+      _lowSince = now;
+    }
 #endif
   }
+  // How long the CPU has run on the slower clock since boot, for Diagnostics: it shows the mode works.
+  uint32_t lowSeconds() const { return (_lowMs + (_low ? millis() - _lowSince : 0)) / 1000; }
 
 private:
   TDeckKeyboard& _k;
   Gt911Touch& _t;
   uint32_t _active = 240;
+  uint32_t _lowMs = 0, _lowSince = 0;
+  bool _low = false;
 };

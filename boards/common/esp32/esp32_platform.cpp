@@ -57,6 +57,8 @@ void Esp32Platform::sdSpace(uint32_t& usedKb, uint32_t& totalKb) {
   totalKb = (uint32_t)(SD.totalBytes() / 1024);
 }
 
+uint32_t Esp32Platform::cpuMhz() { return getCpuFrequencyMhz(); }
+
 void Esp32Platform::reboot() { ESP.restart(); }
 
 uint16_t Esp32Platform::batteryMv() { return board.getBattMilliVolts(); }

@@ -95,6 +95,7 @@ Heltec V3, T-Echo or similar), on the same radio preset as the mesh.
 ## 7. Power and memory
 
 - [x] **Battery drain.** With the idle sleep in the main loop: note the voltage on Diagnostics > System, run an hour on battery with the screen timing out, and note it again. Compare with an older build if possible. On hardware: 94% to 84% in an hour with Bluetooth connected, so roughly 9 to 10 hours per charge. Percentages only; no voltage or older-build comparison yet.
+- [ ] **Idle power (T-Deck).** The backlight dims for the last 8 s before the screen times out (any key or touch brings it back); with the screen off the CPU drops to 160 MHz and the keys and touch panel are polled every 50 / 80 ms (`-D MC_IDLE_CPU_MHZ=0` keeps the clock). Check that a key or touch still wakes the screen at once, that DMs and channel messages keep arriving with the screen off and Bluetooth connected, and compare the hourly drain with an older build. Not measured.
 - [ ] **Lower CPU clock.** Build with `-D ESP32_CPU_FREQ=80` (or 160): check that Bluetooth with the phone, radio receive and the UI still work, then repeat the drain test.
 
 - [x] **Battery reading.** GPIO10 through a 2:1 divider, measured as esp-vim and M5Unified do. On USB with the power switch off it reads 4.14 V, the charger's output.

@@ -23,20 +23,22 @@ public:
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }
   bool lockPressed() override { bool l = _lock; _lock = false; return l; }
   void setLocked(bool locked) override { _locked = locked; }
+  // The screen is off: scan the keys less often (a press still wakes it).
+  void setSlow(bool slow) { _scanMs = slow ? 50 : 20; }
   // A worn trackball can roll by itself: off, its rolls are ignored (the
   // click still works).
   void setBall(bool on) { _ballOn = on; }
   // Key backlight while keys are being used (0: off), and how long after.
   void setLight(uint8_t level, uint16_t seconds) { _lightLevel = level; _lightSec = seconds; }
 
-private:
-  void keys();
-  void ball();
-  void click();
   // The notification light: the key backlight at this level (0: back to
   // following the keys). See TDeckLed.
   void setNotifyLight(uint8_t level) { _notify = level; }
 
+private:
+  void keys();
+  void ball();
+  void click();
   void light();
   void typed(uint8_t c);
   void tap(uint8_t usage, uint8_t mods);

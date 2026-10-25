@@ -15,6 +15,7 @@
 #include "ui/screens/screens.h"
 #include "st7789_tdeck.h"
 #include "tdeck_keyboard.h"
+#include "tdeck_idle.h"
 #include "gt911_touch.h"
 #include "esp32_platform.h"
 #include "i2s_sound.h"
@@ -56,8 +57,9 @@ static MyMesh* g_mesh = nullptr;
 #define the_mesh (*g_mesh)
 static St7789TDeck display(loraSpi);
 static TDeckKeyboard keyboard;
-static Gt911Touch touch;
 static TDeckLed led(keyboard);   // the key backlight, blinked for a new message
+static Gt911Touch touch;
+static TDeckIdle idle(keyboard, touch);   // slower while the screen is off
 static I2sSound sound;
 // The UI, built in setup() on the local or the remote model.
 static void* ui_storage = nullptr;
@@ -99,11 +101,11 @@ static void setupRemote() {
   touch.begin();
   sound.begin();
   ui_app->setTouch(&touch);
-  ui_app->begin(ui::screens::boot());
-  board.onBootComplete();
   ui_app->setLed(&led);
   idle.begin();
   ui_app->setIdleHook(&idle);
+  ui_app->begin(ui::screens::boot());
+  board.onBootComplete();
   Serial.printf("meshmash %s (remote node mode): keyboard %s, touch %s, sd %s, heap %u (min %u)\n",
                 MC_UI_VERSION, keyboard.present() ? (keyboard.rawMode() ? "ok" : "chars only") : "MISSING",
                 touch.present() ? "ok" : "MISSING", platform.sd() ? "yes" : "no", (unsigned)platform.heapFree(),
@@ -141,11 +143,11 @@ void setup() {
   touch.begin();
   sound.begin();
   ui_app->setTouch(&touch);
-  ui_app->begin(ui::screens::boot());
-  if (!fs_ok) ui_app->toast("No storage partition: nothing is saved", ui::C_ERR);
   ui_app->setLed(&led);
   idle.begin();
   ui_app->setIdleHook(&idle);
+  ui_app->begin(ui::screens::boot());
+  if (!fs_ok) ui_app->toast("No storage partition: nothing is saved", ui::C_ERR);
   ui_app->loop(millis());
 #if defined(BLE_PIN_CODE)
   platform.blePairingFn = [] { return ble_interface.pairing(); };

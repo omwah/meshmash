@@ -129,6 +129,7 @@ void TDeckKeyboard::click() {
   if (down && !_clickDown) {
     _clickDown = true;
     _clickAt = now;
+    _clickFrom = now;
   } else if (down && _clickAt && now - _clickAt >= 30) {
     _clickAt = 0;
     _lastKey = now;
@@ -140,6 +141,8 @@ void TDeckKeyboard::click() {
     _lastKey = now;
     _lock = true;
   } else if (!down) {
+    if (_clickEnter) tap(0x28, 0);
+    _clickEnter = false;
     _clickDown = false;
     _clickAt = 0;
   }
@@ -149,6 +152,7 @@ void TDeckKeyboard::light() {
   if (!_ok) return;
   bool on = _lightLevel && _lightSec && _lastKey && millis() - _lastKey < _lightSec * 1000u;
   uint8_t want = on ? _lightLevel : 0;
+  if (_notify > want) want = _notify;
   if (want == _lit) return;
   Wire.beginTransmission(ADDR);
   Wire.write(CMD_LIGHT);
@@ -160,9 +164,8 @@ bool TDeckKeyboard::poll(hal::KeyEvent& ev) {
   if (_diff.next(ev)) return true;
   ball();
   click();
-  if (_notify > want) want = _notify;
   uint32_t now = millis();
-  if (now - _lastPoll >= 20) {
+  if (now - _lastPoll >= _scanMs) {
     _lastPoll = now;
     keys();
     light();

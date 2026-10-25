@@ -312,6 +312,7 @@ void App::unlock(uint32_t now) {
 void App::wake() {
   if (!_asleep) return;
   _asleep = false;
+  _dimmed = false;
   _d.sleep(false);
   _d.setBacklight(_m.prefs().brightness);
   _forceFlush = true;
@@ -507,7 +508,17 @@ uint32_t App::loop(uint32_t now) {
   // Screen timeout.
   uint16_t timeout = _m.prefs().screenTimeoutS;
   if (!_asleep && timeout && now - _lastInput > timeout * 1000u) {
+  if (!_asleep && timeout >= 20) {
+    const uint32_t kDimMs = 8000;
+    bool dim = now - _lastInput > timeout * 1000u - kDimMs;
+    if (dim != _dimmed) {
+      _dimmed = dim;
+      uint8_t b = _m.prefs().brightness, low = b / 4 < 24 ? 24 : b / 4;
+      _d.setBacklight(dim && low < b ? low : b);
+    }
+  }
     _asleep = true;
+    _dimmed = false;
     _d.setBacklight(0);
     _d.sleep(true);
     if (_k.hasUnlockButton() && _m.prefs().lockOnTimeout) {
@@ -562,6 +573,11 @@ uint32_t App::loop(uint32_t now) {
   }
 
   uint32_t wait = _in.wakeIn(now);
+  if (_idleHook && _idleTold != _asleep) {
+    _idleTold = _asleep;
+    _idleHook->setIdle(_asleep);
+  }
+
 #if MC_TOUCH
   uint32_t lp = _gest.wakeIn(now);
   if (lp && (!wait || lp < wait)) wait = lp;

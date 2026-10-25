@@ -13,6 +13,8 @@ public:
   bool begin() override;
   bool poll(hal::TouchEvent& ev) override;
   bool present() const { return _addr != 0; }
+  // While the screen is off a touch only has to wake it: look less often.
+  void setSlow(bool slow) { _pollMs = slow ? 80 : 16; }
 
 private:
   bool read(uint16_t reg, uint8_t* out, int n);
@@ -23,5 +25,5 @@ private:
   uint8_t _turn = 0;
   bool _down = false;
   int16_t _x = 0, _y = 0;
-  uint32_t _lastPoll = 0, _lastMove = 0;
+  uint32_t _lastPoll = 0, _lastMove = 0, _pollMs = 16;
 };

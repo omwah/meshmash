@@ -15,6 +15,7 @@
 #include "model/model.h"
 #include "hal/display.h"
 #include "hal/keyboard.h"
+#include "hal/idle.h"
 #include "hal/touch.h"
 #include "hal/sound.h"
 #include "hal/led.h"
@@ -90,9 +91,9 @@ public:
   virtual void onTouch(App& app, const Gesture& g, const HitTarget* t);
   // Put the list cursor on row `i` (a tap on it); false if it can't go there.
   virtual bool selectRow(App& app, int i) { (void)app; (void)i; return false; }
-};
   // Pixels of drag that move a list by one row: its row height, so with "opposite" the list follows the finger.
   virtual int dragRowPx(App& app);
+};
 
 using Action = void (*)(App& app, int arg);
 
@@ -136,6 +137,7 @@ public:
   void wake();
   // The status light, if the board has one (set before begin()).
   void setLed(hal::Led* led) { _led = led; }
+  void setIdleHook(hal::IdleHook* h) { _idleHook = h; }
 #if MC_TOUCH
   // The touch panel, if the board has one (set before begin()).
   void setTouch(hal::Touch* t) { _touch = t; }
@@ -211,6 +213,9 @@ private:
   uint32_t _lastInput = 0;
   uint16_t _lastUnread = 0;
   hal::Led* _led = nullptr;
+  hal::IdleHook* _idleHook = nullptr;
+  bool _idleTold = false;        // what the hook was last told (the screen asleep)
+  bool _dimmed = false;          // the backlight is down before the screen goes off
 #if MC_TOUCH
   hal::Touch* _touch = nullptr;
   GestureReader _gest;
@@ -225,12 +230,12 @@ private:
   bool _asleep = false;
   bool _locked = false;
   void unlock(uint32_t now);
+  void lockNow();
   uint32_t _marqueeStart = 0;   // restarts on every key, so a new selection starts at its beginning
   bool _animating = false;       // a marquee is moving: keep redrawing
   bool _pairing = false;         // the PIN overlay is showing
   bool _pairingHidden = false;   // dismissed with Esc for this attempt
 };
-  void lockNow();
 
 // Shared drawing helpers.
 void drawSignal(Canvas& c, int x, int y, int8_t snr_x4);       // 4 bars, 9x8

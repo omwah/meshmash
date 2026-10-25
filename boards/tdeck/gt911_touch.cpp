@@ -70,7 +70,7 @@ int Gt911Touch::readRaw(int& rx, int& ry) {
 bool Gt911Touch::poll(hal::TouchEvent& ev) {
   if (!_addr) return false;
   uint32_t now = millis();
-  if (now - _lastPoll < 16) return false;   // about 60 reports a second
+  if (now - _lastPoll < _pollMs) return false;   // about 60 reports a second
   _lastPoll = now;
   int rx, ry;
   int r = readRaw(rx, ry);

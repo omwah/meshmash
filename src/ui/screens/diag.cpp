@@ -1,4 +1,5 @@
 // Diagnostics pages, the received-packet log, GPS status and heard adverts.
+#include <time.h>
 #include "ui/screens/screens.h"
 #include "ui/widgets.h"
 #include "ui/icons.h"
@@ -19,7 +20,11 @@ namespace {
 struct DiagItem {
   enum Kind : uint8_t { Meter, Pair, Line, Break } kind;
   const char* label;
+#ifdef MC_BOARD_TDECK
+  char value[44];
+#else
   char value[28];
+#endif
   int num, lo, hi;
   uint8_t col;
 };
@@ -190,10 +195,68 @@ private:
     a.m().selfKey(k);
     pair(n, "node id", C_ACCENT, "%02X%02X%02X%02X", k[0], k[1], k[2], k[3]);
     pair(n, "fw", C_DIM, "%s", MC_UI_VERSION);
+#ifdef MC_BOARD_TDECK
+    storage(n, d);
+#endif
     return n;
   }
 
+#ifdef MC_BOARD_TDECK
+  // The message store: where the history lives and what has gone wrong with it.
+  void line(int& n, uint8_t col, const char* fmt, ...) __attribute__((format(printf, 4, 5))) {
+    DiagItem& it = _items[n++];
+    it = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, col};
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(it.value, sizeof it.value, fmt, ap);
+    va_end(ap);
+  }
+
+  static void clock(uint32_t ts, char* out, int n) {
+    if (!ts) { snprintf(out, n, "-"); return; }
+    time_t t = (time_t)ts;
+    struct tm tmv;
+    localtime_r(&t, &tmv);
+    strftime(out, n, "%H:%M", &tmv);
+  }
+
+  void storage(int& n, const model::Diag& d) {
+    _items[n++] = DiagItem{DiagItem::Break, "", {}, 0, 0, 0, 0};
+    if (d.flashTotalKb)
+      meter(n, "flash", (int)d.flashUsedKb, 0, (int)d.flashTotalKb,
+            d.flashUsedKb * 10 >= d.flashTotalKb * 9 ? C_ERR : d.flashUsedKb * 4 >= d.flashTotalKb * 3 ? C_WARN : C_OK,
+            "%lu/%luK", (unsigned long)d.flashUsedKb, (unsigned long)d.flashTotalKb);
+    if (d.sdTotalKb)
+      meter(n, "sd", (int)(d.sdUsedKb / 1024), 0, (int)(d.sdTotalKb / 1024), C_OK, "%lu/%luM",
+            (unsigned long)(d.sdUsedKb / 1024), (unsigned long)(d.sdTotalKb / 1024));
+    else
+      line(n, d.archiveOn ? C_WARN : C_DIM, "sd      %s", d.archiveOn ? "gone since boot" : "no card at boot: no archive");
+    static const char* const kErr[] = {"none", "open", "grow", "write", "lost", "rebuild"};
+    char t1[12], t2[12];
+    clock(d.msgOkTs, t1, sizeof t1);
+    clock(d.msgErrTs, t2, sizeof t2);
+    line(n, C_TEXT, "ring %s %luK  saved #%lu  next #%lu", d.msgOnCard ? "sd" : "fl", (unsigned long)(d.msgRingBytes / 1024),
+         (unsigned long)d.msgSeqFlash, (unsigned long)d.msgSeqNext);
+    line(n, d.msgWriteFails ? C_ERR : C_TEXT, "writes  %lu ok  %lu failed", (unsigned long)d.msgWrites,
+         (unsigned long)d.msgWriteFails);
+    line(n, d.msgErr ? C_ERR : C_DIM, "last ok %s  last err %s (%s)", t1, t2, kErr[d.msgErr < 6 ? d.msgErr : 0]);
+    line(n, d.archiveFails ? C_ERR : C_TEXT, "archive %lu ok  %lu failed", (unsigned long)d.archived,
+         (unsigned long)d.archiveFails);
+    if (d.winN)
+      line(n, d.winNewest ? C_TEXT : C_WARN, "window  #%lu-#%lu (%u)%s", (unsigned long)d.winFirst,
+           (unsigned long)d.winLast, d.winN, d.winNewest ? "" : " not newest");
+    else
+      line(n, C_DIM, "window  no chat open");
+    if (d.winN) line(n, C_DIM, "chat's newest #%lu", (unsigned long)d.winThreadLast);
+  }
+
+#endif
+
+#ifdef MC_BOARD_TDECK
+  DiagItem _items[48];   // 42 used
+#else
   DiagItem _items[32];   // 28 used
+#endif
   int _page = 0, _pages = 1;
   uint32_t _last = 0;
   char _title[24];

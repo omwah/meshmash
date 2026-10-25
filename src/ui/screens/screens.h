@@ -15,6 +15,7 @@ void openThread(App& a, model::ThreadId t);
 // Vim keys: back to the conversation open before this one (Ctrl-o), and to
 // the next or previous one with unread messages (]u, [u).
 void jumpBack(App& a);
+bool draftPreview(model::ThreadId t, char* out, int n);   // a half-written message waiting in a chat
 void jumpUnread(App& a, int dir);
 // If the conversation is on top, start writing in it.
 void startCompose(App& a);

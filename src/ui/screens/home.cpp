@@ -258,7 +258,16 @@ private:
       }
       preview = _full;
     }
-    a.fitText(c, 17, line2, preview, f, sel ? C_TEXT : C_DIM, tx - 21, sel);
+    // A message waiting to be sent takes the place of the preview.
+    char dline[model::TEXT_LEN + 8], dtext[model::TEXT_LEN];
+    bool draft = draftPreview(t.id, dtext, sizeof dtext);
+    if (draft) {
+      for (char* p = dtext; *p; p++)
+        if (*p == '\n') *p = ' ';
+      snprintf(dline, sizeof dline, "Draft: %s", dtext);
+      preview = dline;
+    }
+    a.fitText(c, 17, line2, preview, f, draft ? C_ACCENT : sel ? C_TEXT : C_DIM, tx - 21, sel);
   }
 
   void drawContact(App& a, Canvas& c, int y, int rowH, int i, bool sel) {

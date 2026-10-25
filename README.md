@@ -197,6 +197,11 @@ A command being typed (`2g`) shows at the right of the footer.
   - Relays are named when their hash matches exactly one repeater or room contact.
   - A DM that came by a direct route has no path left when it arrives, so the reply shows our stored route to the sender, reversed and marked `(stored route)`.
   - Each contact gets at most one answer every 10 seconds.
+- **Times:**
+  - The time beside a message is when this device received it, because senders' clocks are often wrong. Before this device's own clock is set, the sender's time is used.
+  - Message details show both dates with the year: Received, and Sent (the sender's clock), with how far off theirs is when it is.
+  - Settings → Clock chooses 24-hour (13:28) or 12-hour (1:28pm).
+- **Version label:** About, Diagnostics and the boot screen show the exact build. A clean build of a release tag shows just the tag (`1.2.0`); anything else shows the tag, the commits since it, the commit, and `.dirty` if there are uncommitted changes (`1.2.0+19.9bf8937.dirty`).
 - **Backup & restore to SD:**
   - Automatic backup can be turned on or off.
   - Manual backup and restore, plus restore of the previous backup.

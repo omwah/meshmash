@@ -140,6 +140,23 @@ int stepIn(const T (&arr)[N], T cur, int dir) {
   return arr[i];
 }
 
+// The Bluetooth PIN is read when Bluetooth starts, so a new one takes a
+// restart (and the phone has to forget the old pairing).
+void askPin(App& a) {
+  a.prompt("6-digit PIN", "", 6, [](App& app, int) {
+    const char* t = app.promptText();
+    uint32_t v = 0;
+    int n = 0;
+    for (; t[n] >= '0' && t[n] <= '9'; n++) v = v * 10 + (t[n] - '0');
+    if (n != 6 || t[n]) { app.toast("PIN must be 6 digits", C_ERR); return; }
+    model::Prefs p = app.m().prefs();
+    p.blePin = v;
+    p.blePinRandom = false;
+    app.m().setPrefs(p);
+    app.toast("PIN saved: restart, then forget this device on the phone and pair again", C_OK);
+  });
+}
+
 class SettingsScreen : public MenuScreen {
 public:
   const char* title(App&) override { return "Settings"; }
@@ -190,6 +207,10 @@ protected:
         break;
       case S_LOCKOUT: it.label = "Key filter"; it.choice = true; snprintf(it.value, sizeof it.value, "%u ms", p.inputLockoutMs); break;
       case S_SOUND: it.label = "Sound"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", yesNo(p.sound)); break;
+      case S_LEDLEVEL:
+        it.label = "LED brightness"; it.choice = true;
+        snprintf(it.value, sizeof it.value, "%d%%", p.ledBrightness * 100 / 255);
+        break;
       case S_NOTIFY: {
         static const char* const kModes[] = {"LED only", "screen on", "stay dark", "screen + LED"};
         it.label = "New message"; it.choice = true;
@@ -207,16 +228,18 @@ protected:
         it.label = "Bluetooth (phone app)"; it.choice = true;
         it.enabled = a.m().bleAvailable();
         snprintf(it.value, sizeof it.value, "%s", !it.enabled ? "n/a" : !p.bleEnabled ? "off" : a.m().bleConnected() ? "connected" : "on");
-      case S_LEDLEVEL:
-        it.label = "LED brightness"; it.choice = true;
-        snprintf(it.value, sizeof it.value, "%d%%", p.ledBrightness * 100 / 255);
-        break;
         it.valueCol = a.m().bleConnected() ? C_OK : C_ACCENT;
         break;
       case S_PIN:
         it.label = "Bluetooth PIN";
         it.enabled = a.m().bleAvailable();
-        snprintf(it.value, sizeof it.value, "%06u", (unsigned)a.m().bleActivePin());
+        // The PIN to be used (a chosen one shows at once), not only the one in use since boot.
+        if (!p.blePinRandom && p.blePin && p.blePin != a.m().bleActivePin()) {
+          snprintf(it.value, sizeof it.value, "%06u (restart)", (unsigned)p.blePin);
+          it.valueCol = C_WARN;
+        } else {
+          snprintf(it.value, sizeof it.value, "%06u", (unsigned)a.m().bleActivePin());
+        }
         break;
       case S_PINMODE:
         it.label = "New PIN";
@@ -261,20 +284,16 @@ protected:
         break;
       case S_PIN:
         if (a.m().prefs().blePinRandom) {
-          a.toast("PIN changes every boot: set New PIN to fixed to choose one", C_WARN);
+          // A new PIN every boot can't be chosen: offer the fixed mode, then ask.
+          a.confirm("Use one fixed PIN instead of a new one at every boot?", [](App& app, int) {
+            model::Prefs q = app.m().prefs();
+            q.blePinRandom = false;
+            app.m().setPrefs(q);
+            askPin(app);
+          });
           break;
         }
-        a.prompt("6-digit PIN", "", 6, [](App& app, int) {
-          const char* t = app.promptText();
-          uint32_t v = 0;
-          int n = 0;
-          for (; t[n] >= '0' && t[n] <= '9'; n++) v = v * 10 + (t[n] - '0');
-          if (n != 6 || t[n]) { app.toast("PIN must be 6 digits", C_ERR); return; }
-          model::Prefs p = app.m().prefs();
-          p.blePin = v;
-          app.m().setPrefs(p);
-          app.toast("PIN saved: restart, then re-pair the phone", C_OK);
-        });
+        askPin(a);
         break;
       case S_FACTORY:
         if (remoteMode(a)) {
@@ -327,6 +346,11 @@ protected:
       case S_SCROLL: p.touchScrollNatural = !p.touchScrollNatural; break;
       case S_LOCKOUT: p.inputLockoutMs = (uint16_t)stepIn(kLockouts, p.inputLockoutMs, dir); break;
       case S_SOUND: p.sound = !p.sound; break;
+      case S_LEDLEVEL: {
+        static const uint8_t kLevels[] = {32, 64, 128, 192, 255};
+        p.ledBrightness = (uint8_t)stepIn(kLevels, p.ledBrightness, dir);
+        break;
+      }
       case S_NOTIFY: p.notify = (model::NotifyMode)(((int)p.notify + 4 + dir) % 4); break;
       case S_AUTOADD: p.autoAddContacts = !p.autoAddContacts; break;
       case S_PINGBOT: p.pingBot = !p.pingBot; break;
@@ -346,14 +370,10 @@ protected:
         break;
       }
       default: return;
-      case S_LEDLEVEL: {
-        static const uint8_t kLevels[] = {32, 64, 128, 192, 255};
-        p.ledBrightness = (uint8_t)stepIn(kLevels, p.ledBrightness, dir);
-        break;
-      }
     }
     a.m().setPrefs(p);
     a.applyPrefs();
+    if (i == S_LEDLEVEL) a.flashLed();   // show it
   }
 };
 
@@ -373,7 +393,6 @@ public:
       _r = a.m().radio();
       _preset = a.m().prefs().presetIdx;
     }
-    if (i == S_LEDLEVEL) a.flashLed();   // show it
     MenuScreen::onEnter(a);
   }
 

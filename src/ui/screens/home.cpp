@@ -61,8 +61,13 @@ public:
     if (th) drawTabs(a, c, r);
     Rect lr{r.x, r.y + th, r.w, r.h - th};
     ListNav& nav = _nav[_tab];
-    int rowH = _tab == T_CHATS ? m.chatRow : m.row;
-    int vis = lr.h / rowH;
+    const int baseH = _tab == T_CHATS ? m.chatRow : m.row;
+    int vis = lr.h / baseH;
+    // The leftover pixels below the last whole row go to the rows, so the
+    // list reaches the bottom of its area instead of ending in a blank band.
+    const int rowH = baseH + (vis ? (lr.h % baseH) / vis : 0);
+    _rowH = rowH;
+    const int pad = (rowH - baseH) / 2;
     nav.clamp(_n, vis);
     if (_n == 0) {
       const char* msg = _query[0] ? "No matches" :
@@ -82,9 +87,9 @@ public:
         c.fillRect(lr.x, y, lr.w - 3, rowH, C_ZEBRA);
       }
       a.hit({lr.x, y, lr.w, rowH}, HitTarget::ROW, i);
-      if (_tab == T_CHATS) drawChat(a, c, y, rowH, _order[i], sel);
-      else if (_tab == T_CHANNELS) drawChannel(a, c, y, rowH, _order[i], sel);
-      else drawContact(a, c, y, rowH, _order[i], sel);
+      if (_tab == T_CHATS) drawChat(a, c, y + pad, baseH, _order[i], sel, pad);
+      else if (_tab == T_CHANNELS) drawChannel(a, c, y + pad, baseH, _order[i], sel);
+      else drawContact(a, c, y + pad, baseH, _order[i], sel);
     }
     drawScrollbar(c, lr, _n, nav.top, vis);
   }
@@ -163,6 +168,7 @@ public:
     rebuild(a);
   }
   int tab() const { return _tab; }
+  int dragRowPx(App& a) override { return _rowH ? _rowH : Screen::dragRowPx(a); }
 
   const Hint* hints(App& a) override {
     // Most important first: larger text sizes show fewer hints.
@@ -214,7 +220,7 @@ private:
     }
   }
 
-  void drawChat(App& a, Canvas& c, int y, int rowH, int i, bool sel) {
+  void drawChat(App& a, Canvas& c, int y, int rowH, int i, bool sel, int pad) {
     model::Thread t;
     if (!a.m().thread(i, t)) return;
     const mc_font_t* f = a.fMed();
@@ -222,7 +228,7 @@ private:
     const int line2 = y + 1 + f->height;
     bool chan = t.id.kind == model::ThreadKind::Channel;
     uint8_t col = chan ? C_CHAN : typeColor(t.type);
-    c.fillRect(0, y, 3, rowH, col);
+    c.fillRect(0, y - pad, 3, rowH + 2 * pad, col);
     // Channels: # for hashtag channels, a lock for ones with a private key.
     int iy = y + 1 + (f->height - 8) / 2;
     c.bitmap(6, iy, chan ? (t.title[0] == '#' ? icon::hash : icon::lock) : typeIcon(t.type), 8, 8, col);
@@ -364,6 +370,7 @@ private:
   }
 
   int _tab = T_CHATS;
+  int _rowH = 0;   // the list's row height as last drawn
   ListNav _nav[T_COUNT];
   char _query[16] = {};
   bool _typing = false;                // vim keys: typing a search after /

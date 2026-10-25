@@ -91,6 +91,8 @@ public:
   // Put the list cursor on row `i` (a tap on it); false if it can't go there.
   virtual bool selectRow(App& app, int i) { (void)app; (void)i; return false; }
 };
+  // Pixels of drag that move a list by one row: its row height, so with "opposite" the list follows the finger.
+  virtual int dragRowPx(App& app);
 
 using Action = void (*)(App& app, int arg);
 

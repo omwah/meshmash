@@ -381,6 +381,8 @@ int App::dragSteps(int dy, int step) {
   _dragRest -= n * step;
   return n;
 }
+int Screen::dragRowPx(App& a) { return a.mx().row; }
+
 
 void App::handleGesture(const Gesture& g) {
   _dirty = true;
@@ -424,7 +426,7 @@ void Screen::onTouch(App& a, const Gesture& g, const HitTarget* t) {
     case Gesture::DRAG: {
       // Dragging down moves the selection down, or with natural scrolling up (the content
       // follows the finger); see scrollDy.
-      int n = a.dragSteps(a.scrollDy(g.dy), a.mx().row);
+      int n = a.dragSteps(a.scrollDy(g.dy), dragRowPx(a));
       for (; n > 0; n--) a.key(K_DOWN);
       for (; n < 0; n++) a.key(K_UP);
       return;

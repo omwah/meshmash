@@ -11,7 +11,7 @@ license-file = "LICENSE"
 channels = ["conda-forge"]
 name = "meshmash"
 platforms = ["linux-64"]
-version = "1.2.0"
+version = "1.3.0"
 
 [dependencies]
 python = "3.13.*"

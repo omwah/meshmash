@@ -135,6 +135,7 @@ void AdapterBase::uiToPrefs() {
   p.ledBrightness = _ui.ledLevel ? _ui.ledLevel : 128;
   p.clock12 = _ui.clock12;
   p.notify = _ui.notifyMode <= 3 ? (model::NotifyMode)_ui.notifyMode : model::NotifyMode::Led;
+  p.cpuSpeed = _ui.cpuSpeed < MC_CPU_LEVELS ? _ui.cpuSpeed : 0;
 }
 
 void AdapterBase::prefsToUi(const model::Prefs& p) {
@@ -162,6 +163,7 @@ void AdapterBase::prefsToUi(const model::Prefs& p) {
   _ui.scrollNatural = p.touchScrollNatural;
   _ui.ledLevel = p.ledBrightness;
   _ui.clock12 = p.clock12;
+  _ui.cpuSpeed = p.cpuSpeed < MC_CPU_LEVELS ? p.cpuSpeed : 0;
 }
 
 void AdapterBase::setUiMuted(int slot, bool muted) {

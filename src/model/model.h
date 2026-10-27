@@ -226,6 +226,7 @@ struct Prefs {
   Mode deviceMode;                // takes effect after a restart
   bool pingBot;                   // answer "ping" DMs with the path they took
   NotifyMode notify;              // what a new message does
+  uint8_t cpuSpeed;               // the CPU clock while the screen is on: 0 the board's own, 1 balanced, 2 battery saver
   bool clock12;                   // times as 1:28 PM; false: 13:28
   uint8_t ledBrightness;          // the notification light, 1-255 (the T-Deck's is the key backlight)
   bool shortPreview;              // chats list: scroll only the stored preview, not the whole message
@@ -236,6 +237,11 @@ struct Prefs {
   bool lockOnTimeout;             // boards with an unlock button: when the screen times out, keys and
                                   // touch are ignored until it is pressed (a pocket can't type)
 };
+
+// How many CPU speeds Settings offers (1: none). Only speeds validated on the board.
+#ifndef MC_CPU_LEVELS
+#define MC_CPU_LEVELS 3
+#endif
 
 #ifndef MC_HAS_TRACKBALL
 #ifdef MC_BOARD_TDECK

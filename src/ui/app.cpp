@@ -178,6 +178,7 @@ void App::applyPrefs() {
   setTimeZone(kZones[p.timeZone < kZoneCount ? p.timeZone : 0].posix);
   setClock12(p.clock12);
   _in.setLockout(p.inputLockoutMs);
+  if (_idleHook) _idleHook->setSpeed(p.cpuSpeed);
   _d.setBacklight(p.brightness);
   _forceFlush = true;
   _dirty = true;

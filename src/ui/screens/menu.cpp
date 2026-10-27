@@ -143,7 +143,7 @@ MainMenu s_menu;
 
 // ------------------------------------------------------------- settings
 
-enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_RADIO, S_RADIO, S_HDR_TIME, S_TZ, S_CLOCK, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
+enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_RADIO, S_RADIO, S_HDR_TIME, S_TZ, S_CLOCK, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_CPU, S_TEXT, S_PREVIEW,
              S_HDR_IN, S_VIM, S_BALL, S_LOCK, S_SCROLL, S_LOCKOUT, S_SOUND, S_NOTIFY, S_LEDLEVEL,
              S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_PIN, S_PINMODE,
              S_HDR_GPS, S_GPSADV, S_GPSTIME,
@@ -225,6 +225,13 @@ protected:
         if (p.screenTimeoutS) snprintf(it.value, sizeof it.value, "%us", p.screenTimeoutS);
         else snprintf(it.value, sizeof it.value, "never");
         break;
+      case S_CPU: {
+        static const char* const kSpeeds[] = {"fast", "balanced", "battery saver"};
+        it.label = "CPU speed"; it.choice = true;
+        it.enabled = MC_CPU_LEVELS > 1;
+        snprintf(it.value, sizeof it.value, "%s", it.enabled ? kSpeeds[p.cpuSpeed % 3] : "n/a");
+        break;
+      }
       case S_TEXT: {
         static const char* const kSizes[] = {"small", "medium", "large"};
         it.label = "Text size"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", kSizes[p.textSize % 3]);
@@ -374,6 +381,7 @@ protected:
         break;
       }
       case S_TIMEOUT: p.screenTimeoutS = (uint16_t)stepIn(kTimeouts, p.screenTimeoutS, dir); break;
+      case S_CPU: p.cpuSpeed = (uint8_t)((p.cpuSpeed + MC_CPU_LEVELS + dir) % MC_CPU_LEVELS); break;
       case S_TEXT: p.textSize = (uint8_t)((p.textSize + 3 + dir) % 3); break;
       case S_PREVIEW: p.shortPreview = !p.shortPreview; break;
       case S_VIM: p.vimKeys = !p.vimKeys; break;

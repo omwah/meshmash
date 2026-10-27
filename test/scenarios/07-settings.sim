@@ -29,6 +29,15 @@ shot settings-theme-amber
 key right 3
 shot settings-theme-daylight
 key left 4
+# CPU speed for the active UI: fast, balanced, battery saver.
+key down 3
+shot settings-cpu
+key right
+shot settings-cpu-balanced
+key right
+shot settings-cpu-saver
+key left 2
+key up 3
 key down 4
 shot settings-chat-preview
 key down 3

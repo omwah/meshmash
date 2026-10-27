@@ -228,14 +228,11 @@ private:
     fmtDur(t, sizeof t, p.sinceS);
     line(n, C_TEXT, "Since reset %s", t);
     if (!p.cpuMhz) line(n, C_DIM, "CPU         n/a");
-#ifdef MC_BOARD_TDECK   // the idle clock: it should add up while the screen is off
-    else {
-      fmtDur(u, sizeof u, p.lowClockS);
-      line(n, p.lowClockS ? C_OK : C_TEXT, "CPU         %lu MHz  idle clock %s", (unsigned long)p.cpuMhz, u);
-    }
-#else
     else line(n, C_TEXT, "CPU         %lu MHz", (unsigned long)p.cpuMhz);
-#endif
+    if (p.cpuMhz) {   // the idle clock: it should add up while the screen is off
+      fmtDur(u, sizeof u, p.lowClockS);
+      line(n, p.lowClockS ? C_OK : C_TEXT, "Idle clock  %s", u);
+    }
     fmtDur(t, sizeof t, p.screenOffS);
     line(n, C_TEXT, "Screen off  %s", t);
     if (!p.sleepKnown) {
@@ -296,9 +293,9 @@ private:
 #endif
 
 #ifdef MC_BOARD_TDECK
-  DiagItem _items[56];   // 48 used
+  DiagItem _items[56];   // 49 used
 #else
-  DiagItem _items[40];   // 34 used
+  DiagItem _items[40];   // 35 used
 #endif
   int _page = 0, _pages = 1;
   int _powerItem = 0;               // the first Power item, and the page it lands on

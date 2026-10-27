@@ -16,6 +16,7 @@
 #include "st7789_display.h"
 #include "tca8418_keyboard.h"
 #include "esp32_platform.h"
+#include "cardputer_idle.h"
 #include "es8311_sound.h"
 #include "ws2812_led.h"
 #include <new>
@@ -47,6 +48,7 @@
 static MultiSerialInterface interfaces;
 static DataStore store(SPIFFS, rtc_clock);
 static Esp32Platform platform;
+static CardputerIdle idle;   // the clock follows the screen and Settings > CPU speed
 static app::MeshAdapter adapter(&board, &interfaces, platform);
 static StdRNG fast_rng;
 static SimpleMeshTables tables;
@@ -84,6 +86,9 @@ static void setupRemote() {
   sound.begin();
   led.begin();
   ui_app->setLed(&led);
+  idle.begin();
+  ui_app->setIdleHook(&idle);
+  platform.lowClockSecondsFn = [] { return idle.lowSeconds(); };
   ui_app->begin(ui::screens::boot());
   board.onBootComplete();
   Serial.printf("meshmash %s (remote node mode): keyboard %s, speaker %s, sd %s, heap %u (min %u)\n",
@@ -120,6 +125,9 @@ void setup() {
   sound.begin();
   led.begin();
   ui_app->setLed(&led);
+  idle.begin();
+  ui_app->setIdleHook(&idle);
+  platform.lowClockSecondsFn = [] { return idle.lowSeconds(); };
   ui_app->begin(ui::screens::boot());
   if (!fs_ok) ui_app->toast("No storage partition: nothing is saved", ui::C_ERR);
   ui_app->loop(millis());

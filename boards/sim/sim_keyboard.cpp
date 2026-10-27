@@ -36,6 +36,9 @@ static const char* const kAlias[][2] = {{"esc", "alt"}, {"ctrl", "mic"}, {"menu"
 static const char* const kBall[] = {"up", "down", "left", "right", "click", "hold"};
 static constexpr int BALL_CLICK = 4, BALL_HOLD = 5;
 #else
+// G0, the button beside the Cardputer's keys: a press, and a hold (which locks).
+static const char* const kG0[] = {"g0", "g0hold"};
+static constexpr int G0_PRESS = 0, G0_HOLD = 1;
 // The printed layout, as in cardputer_keymap.h.
 static constexpr int ROWS = 4, COLS = 14;
 static const char* const kLegends[ROWS][COLS] = {
@@ -76,6 +79,13 @@ static bool add(const char* legend, Chord& out) {
 #ifdef MC_BOARD_TDECK
   for (int d = 0; d < 6; d++)
     if (!strcmp(legend, kBall[d])) {
+      out.row[out.n] = Chord::BALL;
+      out.col[out.n++] = (int8_t)d;
+      return true;
+    }
+#else
+  for (int d = 0; d < 2; d++)
+    if (!strcmp(legend, kG0[d])) {
       out.row[out.n] = Chord::BALL;
       out.col[out.n++] = (int8_t)d;
       return true;
@@ -171,7 +181,11 @@ bool SimKeyboard::poll(hal::KeyEvent& ev) {
       _diff.update(r);
     }
 #else
-    if (cardputer_keymap_event(&_st, e.row, e.col, e.down, &r)) _diff.update(r);
+    if (e.row == Chord::BALL) {   // G0 is not in the matrix: no key event, only the button
+      if (e.down) (e.col == G0_PRESS ? _unlock : _lock) = true;
+    } else if (cardputer_keymap_event(&_st, e.row, e.col, e.down, &r)) {
+      _diff.update(r);
+    }
 #endif
   }
   return _diff.next(ev);

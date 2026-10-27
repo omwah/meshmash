@@ -1,5 +1,6 @@
 #include "app/adapter_base.h"
 #include "app/radio_presets.h"
+#include "app/lock_pref.h"
 #include <Arduino.h>
 #include <helpers/AdvertDataHelpers.h>
 #include <stdarg.h>
@@ -72,7 +73,8 @@ void AdapterBase::loadUiPrefs(fs::FS& fs) {
   size_t got = f ? f.read((uint8_t*)&_ui, sizeof _ui) : 0;
   bool ok = got >= offsetof(UiPrefs, blePinRandom) && _ui.magic == UI_PREFS_MAGIC;
   if (f) f.close();
-  if (!ok || _ui.version != UI_PREFS_VERSION) {
+  const bool fresh = !ok || _ui.version != UI_PREFS_VERSION;
+  if (fresh) {
     memset(&_ui, 0, sizeof _ui);
     _ui.magic = UI_PREFS_MAGIC;
     _ui.version = UI_PREFS_VERSION;
@@ -87,6 +89,8 @@ void AdapterBase::loadUiPrefs(fs::FS& fs) {
     _ui.blePinRandom = 1;   // a new PIN every boot: 123456 is the first one anyone tries
     _ui.presetIdx = 0;
   }
+  // A new install locks when the screen times out; one from before the Cardputer's G0 keeps its any-key wake.
+  settleLockPref(_ui.lockOff, _ui.lockSet, fresh, MC_HAS_TRACKBALL);
 }
 
 model::Mode readDeviceMode(fs::FS& fs) {

@@ -41,6 +41,7 @@ struct UiPrefs {
   uint8_t lockOff;               // 1: the screen timing out does not lock the keys (0: it does)
   uint8_t ledLevel;              // notification light brightness; 0: the default (128)
   uint8_t clock12;               // 1: times as 1:28 PM
+  uint8_t lockSet;               // 1: lockOff has been decided (a file without it predates the Cardputer's lock)
 };
 
 // The mode the device boots in, from the UI prefs on flash (before any

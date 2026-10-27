@@ -255,12 +255,13 @@ public:
       _uiNode->begin();
       return true;
     }
-    if (!strcmp(cmd, "pref")) {   // pref pingbot on|off, pref notify <mode>, pref pin random|fixed
+    if (!strcmp(cmd, "pref")) {   // pref pingbot on|off, pref notify <mode>, pref pin random|fixed, pref lock on|off
       char what[16] = {}, val[8] = {};
       sscanf(arg, "%15s %7s", what, val);
       model::Prefs p = _ui.prefs();
       if (!strcmp(what, "pingbot")) p.pingBot = !strcmp(val, "on");
       else if (!strcmp(what, "pin")) p.blePinRandom = !strcmp(val, "random");   // pref pin random|fixed
+      else if (!strcmp(what, "lock")) p.lockOnTimeout = !strcmp(val, "on");   // pref lock on|off
       else if (!strcmp(what, "notify")) {   // pref notify led|screen|dark|both
         static const char* const modes[] = {"led", "screen", "dark", "both"};
         int m = 0;

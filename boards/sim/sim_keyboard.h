@@ -32,11 +32,14 @@ public:
   bool begin() override { return true; }
   void setTextMode(bool on) override;
   bool poll(hal::KeyEvent& ev) override;
+  bool hasUnlockButton() const override { return true; }   // the trackball's click, or G0
 #ifdef MC_BOARD_TDECK
-  bool hasUnlockButton() const override { return true; }   // the trackball's click
+  const char* unlockHow() const override { return "click the trackball"; }
+#else
+  const char* unlockHow() const override { return "press G0"; }
+#endif
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }
   bool lockPressed() override { bool l = _lock; _lock = false; return l; }
-#endif
 
   // Schedule a matrix change (or a trackball roll) at an absolute time.
   void at(uint32_t ms, int row, int col, bool down);

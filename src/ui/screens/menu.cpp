@@ -150,9 +150,14 @@ enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_RADIO, S_RADIO, S_HDR_TIM
              S_HDR_TELEM, S_TBATT, S_TLOC, S_TENV,
              S_HDR_DANGER, S_FACTORY, S_N };
 
-// Row -> item: "Trackball", "Lock when screen off" (the trackball's click unlocks) and
-// "Touch Scrolling Direction" are only there on boards with one (the T-Deck, which is also the touch board).
-int sItem(int i) { return !MC_HAS_TRACKBALL && i >= S_BALL ? i + 3 : i; }
+// Row -> item: "Trackball" and "Touch Scrolling Direction" are only there on boards with one (the
+// T-Deck, which is also the touch board).
+int sItem(int i) {
+  if (MC_HAS_TRACKBALL) return i;
+  if (i >= S_BALL) i++;       // past Trackball
+  if (i >= S_SCROLL) i++;     // past Touch Scrolling Direction
+  return i;
+}
 
 const uint16_t kTimeouts[] = {0, 15, 30, 60, 120, 300};
 const uint16_t kLockouts[] = {10, 30, 60, 100, 150, 250, 500};
@@ -189,7 +194,7 @@ public:
   const char* title(App&) override { return "Settings"; }
 
 protected:
-  int count(App&) override { return MC_HAS_TRACKBALL ? S_N : S_N - 3; }
+  int count(App&) override { return MC_HAS_TRACKBALL ? S_N : S_N - 2; }
   void item(App& a, int i, MenuItem& it) override {
     i = sItem(i);
     const model::Prefs& p = a.m().prefs();

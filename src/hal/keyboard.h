@@ -23,6 +23,8 @@ public:
   // A dedicated unlock button, on boards that have one (the T-Deck's trackball
   // click). The UI locks itself when the screen times out only if there is one.
   virtual bool hasUnlockButton() const { return false; }
+  // What to do to unlock, for the hint while locked ("click the trackball").
+  virtual const char* unlockHow() const { return "press the unlock button"; }
   // True once for each press of it. The press also arrives as an ordinary key
   // event (an Enter), so the UI tells the two apart by this.
   virtual bool unlockPressed() { return false; }

@@ -233,6 +233,14 @@ private:
   bool _locked = false;
   void unlock(uint32_t now);
   void lockNow();
+  void goDark();
+  static constexpr uint32_t kNotifyLitMs = 6000;   // a message lights a dark screen this long
+  // A new message (or a pairing that ended on a locked device) lit the dark screen: it goes
+  // dark again at _litUntil without anyone touching it, and input stays as it was.
+  bool _lit = false;
+  bool _unlockWoke = false;      // the unlock button's current press woke the dark, unlocked screen
+  uint32_t _litUntil = 0;
+  void lightFor(uint32_t now, uint32_t ms) { _lit = true; _litUntil = now + ms; }
   uint32_t _marqueeStart = 0;   // restarts on every key, so a new selection starts at its beginning
   bool _animating = false;       // a marquee is moving: keep redrawing
   bool _pairing = false;         // the PIN overlay is showing

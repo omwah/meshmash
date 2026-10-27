@@ -1,10 +1,69 @@
-# The Cardputer has no unlock button: the screen times out and any key wakes
-# it, as it always did.
+# The Cardputer locks when the screen times out (Settings: Lock when screen off, on for a new
+# install). While locked no key lights or unlocks it; a fresh press of G0 unlocks it, once.
 assert awake
 assert unlocked
+wait 61000
+assert asleep
+assert locked
+# Keys in the pocket: nothing.
+key a
+key enter
+key ctrl+a
+assert asleep
+assert locked
+# A message may light the screen, which stays locked, and goes dark again by itself.
+pref notify screen
+rx dm 0 Are you there?
+wait 300
+assert awake
+assert locked
+key a
+key enter
+assert locked
+shot sleep-lit-by-message
+wait 6500
+assert asleep
+assert locked
+# G0 unlocks, also from a lit screen.
+rx dm 0 Again
+wait 300
+assert awake
+assert locked
+key g0
+assert unlocked
+assert awake
+shot sleep-unlocked
+# Pressed while active it does nothing; held it locks by hand, which dims the screen too.
+key g0
+assert awake
+assert unlocked
+key g0hold
+assert asleep
+assert locked
+key g0
+assert unlocked
+assert awake
+# The hold that follows a press which only woke the dark screen is not a lock.
+pref lock off
+wait 61000
+assert asleep
+assert unlocked
+key g0
+assert awake
+key g0hold
+assert awake
+assert unlocked
+# With the lock off any key wakes the screen, as it always did, and is not typed.
 wait 61000
 assert asleep
 assert unlocked
 key a
 assert awake
+assert unlocked
+# A manual lock needs G0 to undo, whatever the setting.
+key g0
+key g0hold
+assert asleep
+assert locked
+key g0
 assert unlocked

@@ -1,7 +1,9 @@
 # Default 60 s screen timeout: the screen sleeps, the key that wakes it does
 # nothing else, and an incoming message wakes it too (when set to).
 # both-modes
-# A message wakes the screen only when set to (LED only is the default).
+# A message wakes the screen only when set to (LED only is the default). With the lock off any
+# key wakes it; with it on, G0 does (test/scenarios/cardputer-sleep.sim).
+pref lock off
 pref notify screen
 node Ivy 7
 as Ivy advert

@@ -16,6 +16,8 @@ public:
       if (!has(_prev, r.key[i])) push({r.key[i], r.mods, true});
     _prev = r;
   }
+  // Forget everything: nothing queued, no key held (a lock discards what was typed).
+  void clear() { _head = _n = 0; _prev = kbd_report_t{}; }
   bool next(hal::KeyEvent& ev) {
     if (!_n) return false;
     ev = _q[_head];

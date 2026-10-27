@@ -20,6 +20,7 @@ public:
   bool present() const { return _ok; }
   bool rawMode() const { return _raw; }
   bool hasUnlockButton() const override { return true; }
+  const char* unlockHow() const override { return "click the trackball"; }
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }
   bool lockPressed() override { bool l = _lock; _lock = false; return l; }
   void setLocked(bool locked) override;

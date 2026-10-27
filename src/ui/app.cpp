@@ -289,6 +289,7 @@ int App::fitText(Canvas& c, int x, int y, const char* s, const mc_font_t* f, uin
 // Locked by hand: the screen goes dark too, as when the timeout locks it.
 void App::lockNow() {
   _locked = true;
+  _lit = false;
   _k.setLocked(true);
   _in.flush();
   if (!_asleep) {
@@ -300,8 +301,17 @@ void App::lockNow() {
   _dirty = true;
 }
 
+void App::goDark() {
+  _unlockWoke = false;
+  _dimmed = false;
+  _asleep = true;
+  _d.setBacklight(0);
+  _d.sleep(true);
+}
+
 void App::unlock(uint32_t now) {
   _locked = false;
+  _lit = false;
   _k.setLocked(false);
   _lastInput = now;
   _in.flush();
@@ -464,10 +474,15 @@ uint32_t App::loop(uint32_t now) {
   while (_k.poll(ev)) {
     if (_locked) {
       // Not activity: a pocket full of keys must not keep the screen on.
-      if (ev.down && !_asleep) toast("Locked: click the trackball", C_WARN);
+      if (ev.down && !_asleep) {
+        char t[48];
+        snprintf(t, sizeof t, "Locked: %s", _k.unlockHow());
+        toast(t, C_WARN);
+      }
       continue;
     }
     _lastInput = now;
+    _lit = false;   // someone is using it: the normal screen timeout applies again
     if (_asleep) {
       // The key that wakes the screen does nothing else.
       if (ev.down) wake();
@@ -477,9 +492,25 @@ uint32_t App::loop(uint32_t now) {
     _in.feed(ev, now);
   }
   // The unlock button's press also came through as an Enter, dropped above.
-  if (_k.unlockPressed() && _locked) unlock(now);
+  if (_k.unlockPressed()) {
+    _unlockWoke = false;
+    if (_locked) {
+      unlock(now);
+    } else if (_asleep) {
+      // Unlocked but dark: the button wakes the screen and does nothing else, and the hold that
+      // may follow on the same press is not a lock request.
+      _unlockWoke = true;
+      _lastInput = now;
+      _lit = false;
+      wake();
+      _in.flush();
+    }
+  }
   // Holding it while unlocked locks the device by hand.
-  if (_k.lockPressed() && !_locked && _k.hasUnlockButton()) lockNow();
+  if (_k.lockPressed()) {
+    if (_unlockWoke) _unlockWoke = false;
+    else if (!_locked && _k.hasUnlockButton()) lockNow();
+  }
   _in.tick(now);
 
   // A phone pairing over Bluetooth: show the PIN on top of everything.
@@ -488,7 +519,18 @@ uint32_t App::loop(uint32_t now) {
     _pairing = pairing;
     _pairingHidden = false;
     _dirty = true;
-    if (pairing) { _lastInput = now; wake(); }
+    if (pairing) {
+      // Lit for as long as the pairing lasts; input stays locked if it was.
+      _lit = false;
+      _lastInput = now;
+      if (_dimmed) { _dimmed = false; _d.setBacklight(_m.prefs().brightness); }
+      wake();
+    } else if (!_asleep) {
+      // Over (done, failed or cancelled): the inactivity timeout starts afresh; a screen that
+      // never times out, on a device locked by hand, would stay on, so give it a minute.
+      _lastInput = now;
+      if (!_m.prefs().screenTimeoutS && _locked) lightFor(now, 60000);
+    }
   }
 
   // A new unread message: the screen, the light, both or neither, as set.
@@ -496,8 +538,11 @@ uint32_t App::loop(uint32_t now) {
   if (unread > _lastUnread) {
     model::NotifyMode nm = _m.prefs().notify;
     if (nm == model::NotifyMode::Screen || nm == model::NotifyMode::ScreenLed) {
-      _lastInput = now;
-      wake();
+      // Lights the screen without unlocking: it goes dark again after a short while, even when
+      // the normal timeout is "never". A screen someone is using just stays on a while longer.
+      if (_asleep) { wake(); lightFor(now, kNotifyLitMs); }
+      else if (_lit && !_pairing) lightFor(now, kNotifyLitMs);
+      else _lastInput = now;
     }
     if (nm == model::NotifyMode::Led || nm == model::NotifyMode::ScreenLed) flashLed();
     if (_sound && _m.prefs().sound) {
@@ -509,7 +554,12 @@ uint32_t App::loop(uint32_t now) {
   // Screen timeout. The backlight is the biggest draw: it dims for the last
   // seconds, and any key or touch brings it back.
   uint16_t timeout = _m.prefs().screenTimeoutS;
-  if (!_asleep && timeout >= 20) {
+  if (_lit && !_pairing && (int32_t)(now - _litUntil) >= 0) {
+    _lit = false;
+    if (!_asleep) goDark();   // locked or not stays as it was
+  }
+  const bool held = _lit || _pairing;   // lit for a message or a pairing: no dimming, no timeout
+  if (!_asleep && !held && timeout >= 20) {
     const uint32_t kDimMs = 8000;
     bool dim = now - _lastInput > timeout * 1000u - kDimMs;
     if (dim != _dimmed) {
@@ -518,11 +568,8 @@ uint32_t App::loop(uint32_t now) {
       _d.setBacklight(dim && low < b ? low : b);
     }
   }
-  if (!_asleep && timeout && now - _lastInput > timeout * 1000u) {
-    _dimmed = false;
-    _asleep = true;
-    _d.setBacklight(0);
-    _d.sleep(true);
+  if (!_asleep && !held && timeout && now - _lastInput > timeout * 1000u) {
+    goDark();
     if (_k.hasUnlockButton() && _m.prefs().lockOnTimeout) {
       _locked = true;
       _k.setLocked(true);
@@ -540,11 +587,16 @@ uint32_t App::loop(uint32_t now) {
     hal::TouchEvent te;
     while (_touch->poll(te)) {
       if (_locked) {
-        if (te.type == hal::TouchEvent::DOWN && !_asleep) toast("Locked: click the trackball", C_WARN);
+        if (te.type == hal::TouchEvent::DOWN && !_asleep) {
+          char t[48];
+          snprintf(t, sizeof t, "Locked: %s", _k.unlockHow());
+          toast(t, C_WARN);
+        }
         _gest.cancel();
         continue;
       }
       _lastInput = now;
+      _lit = false;
       if (_asleep) {
         // The touch that wakes the screen does nothing else.
         if (te.type == hal::TouchEvent::DOWN) wake();

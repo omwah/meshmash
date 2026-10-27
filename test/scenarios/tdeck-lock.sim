@@ -49,3 +49,61 @@ assert locked
 key click
 assert unlocked
 assert awake
+# A message that lights a dark screen does not unlock it, and the screen goes dark again
+# by itself: 6 s, restarted by each newer message, even when the timeout is "never".
+pref lock on
+pref timeout 60
+pref notify screen
+key hold
+assert asleep
+assert locked
+rx dm 0 First
+wait 300
+assert awake
+assert locked
+wait 4000
+rx dm 0 Second
+wait 4000
+assert awake
+wait 3000
+assert asleep
+assert locked
+pref timeout 0
+rx dm 0 Third
+wait 300
+assert awake
+wait 6500
+assert asleep
+assert locked
+# "Stay dark" never lights it.
+pref notify dark
+rx dm 0 Fourth
+wait 300
+assert asleep
+assert locked
+# A pairing keeps the screen on for as long as it lasts, still locked. When it ends the
+# timeout starts afresh; with "never" on a locked device that is a minute.
+pref notify screen
+ble pairing
+wait 300
+assert awake
+assert locked
+wait 30000
+assert awake
+ble off
+wait 30000
+assert awake
+wait 31000
+assert asleep
+assert locked
+# Unlocking a message-lit screen hands it back to the normal timeout.
+pref timeout 60
+rx dm 0 Fifth
+wait 300
+key click
+assert unlocked
+assert awake
+wait 30000
+assert awake
+wait 31000
+assert asleep

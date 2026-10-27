@@ -8,8 +8,8 @@ node Kim 8
 repeat 70 1500 as Kim chan 0 m#
 wait 3000
 expect threads 1
-# The screen slept meanwhile (messages only flash the LED): wake it.
-key esc
+# The screen slept and locked meanwhile (messages only flash the LED): G0 unlocks it.
+key g0
 key enter
 # All 70 unread: it opens on the "New" line, at the start of history.
 expect first m001

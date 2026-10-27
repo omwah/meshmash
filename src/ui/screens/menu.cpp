@@ -17,13 +17,31 @@ const char* yesNo(bool b) { return b ? "on" : "off"; }
 // ------------------------------------------------------------- main menu
 
 enum MItem { M_HDR_MESH, M_JOIN, M_HEARD, M_DISCOVER, M_ADV0, M_ADVF,
-             M_HDR_DEV, M_DIAG, M_LOG, M_GPS,
+             M_HDR_RADIOS, M_GPS, M_BLE,
+             M_HDR_DEV, M_DIAG, M_LOG,
              M_HDR_SYS, M_REMOTE, M_SETTINGS, M_BACKUP, M_ABOUT, M_REBOOT, M_N };
 
 bool remoteMode(App& a) { return a.m().mode() == model::Mode::Remote; }
 
 // Row -> item: "Remote node" is only there in remote mode.
 int mItem(App& a, int i) { return !remoteMode(a) && i >= M_REMOTE ? i + 1 : i; }
+
+// One press, unless a phone is connected: dropping it asks first.
+void toggleBluetooth(App& a) {
+  model::Prefs p = a.m().prefs();
+  if (p.bleEnabled && a.m().bleConnected()) {
+    a.confirm("Disconnect the phone?", [](App& app, int) {
+      model::Prefs q = app.m().prefs();
+      q.bleEnabled = false;
+      app.m().setPrefs(q);
+      app.applyPrefs();
+    });
+    return;
+  }
+  p.bleEnabled = !p.bleEnabled;
+  a.m().setPrefs(p);
+  a.applyPrefs();
+}
 
 class MainMenu : public MenuScreen {
 public:
@@ -39,9 +57,7 @@ protected:
       case M_DISCOVER: it.label = "Discover repeaters"; break;
       case M_ADV0: it.label = "Advertise (zero hop)"; break;
       case M_ADVF: it.label = "Advertise (flood)"; break;
-      case M_HDR_DEV: it.label = "DIAGNOSTICS"; it.header = true; break;
-      case M_DIAG: it.label = "Diagnostics"; break;
-      case M_LOG: it.label = "Packet log"; snprintf(it.value, sizeof it.value, "%d", a.m().rxLogCount()); it.valueCol = C_DIM; break;
+      case M_HDR_RADIOS: it.label = "GPS & BLUETOOTH"; it.header = true; break;
       case M_GPS: {
         it.label = "GPS";
         model::Gps g = a.m().gps();
@@ -49,6 +65,19 @@ protected:
         it.valueCol = !g.enabled ? C_DIM : g.fix ? C_OK : C_WARN;
         break;
       }
+      case M_BLE: {
+        // In remote mode the link is the node connection; switching mode is in Settings.
+        const model::Prefs& p = a.m().prefs();
+        it.label = "Bluetooth"; it.choice = true;
+        it.enabled = a.m().bleAvailable() && !remoteMode(a);
+        snprintf(it.value, sizeof it.value, "%s", !a.m().bleAvailable() ? "n/a" : remoteMode(a) ? "in use"
+                 : !p.bleEnabled ? "off" : a.m().bleConnected() ? "connected" : "on");
+        it.valueCol = !it.enabled || !p.bleEnabled ? C_DIM : a.m().bleConnected() ? C_OK : C_ACCENT;
+        break;
+      }
+      case M_HDR_DEV: it.label = "DIAGNOSTICS"; it.header = true; break;
+      case M_DIAG: it.label = "Diagnostics"; break;
+      case M_LOG: it.label = "Packet log"; snprintf(it.value, sizeof it.value, "%d", a.m().rxLogCount()); it.valueCol = C_DIM; break;
       case M_HDR_SYS: it.label = "SYSTEM"; it.header = true; break;
       case M_REMOTE: {
         it.label = "Remote node";
@@ -83,6 +112,7 @@ protected:
       case M_DIAG: openDiag(a); break;
       case M_LOG: openPacketLog(a); break;
       case M_GPS: openGps(a); break;
+      case M_BLE: toggleBluetooth(a); break;
 #if MC_UI_REMOTE
       case M_REMOTE: openRemote(a); break;
 #endif
@@ -104,6 +134,9 @@ protected:
         break;
     }
   }
+  void adjust(App& a, int i, int) override {
+    if (mItem(a, i) == M_BLE) toggleBluetooth(a);
+  }
 };
 
 MainMenu s_menu;
@@ -112,8 +145,8 @@ MainMenu s_menu;
 
 enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_RADIO, S_RADIO, S_HDR_TIME, S_TZ, S_CLOCK, S_HDR_DISP, S_THEME, S_BRIGHT, S_TIMEOUT, S_TEXT, S_PREVIEW,
              S_HDR_IN, S_VIM, S_BALL, S_LOCK, S_SCROLL, S_LOCKOUT, S_SOUND, S_NOTIFY, S_LEDLEVEL,
-             S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_BLE, S_PIN, S_PINMODE,
-             S_HDR_GPS, S_GPS, S_GPSADV, S_GPSTIME,
+             S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_PIN, S_PINMODE,
+             S_HDR_GPS, S_GPSADV, S_GPSTIME,
              S_HDR_TELEM, S_TBATT, S_TLOC, S_TENV,
              S_HDR_DANGER, S_FACTORY, S_N };
 
@@ -226,12 +259,6 @@ protected:
         it.enabled = a.m().pingBotAvailable();
         snprintf(it.value, sizeof it.value, "%s", !it.enabled ? "n/a" : yesNo(p.pingBot));
         break;
-      case S_BLE:
-        it.label = "Bluetooth (phone app)"; it.choice = true;
-        it.enabled = a.m().bleAvailable();
-        snprintf(it.value, sizeof it.value, "%s", !it.enabled ? "n/a" : !p.bleEnabled ? "off" : a.m().bleConnected() ? "connected" : "on");
-        it.valueCol = a.m().bleConnected() ? C_OK : C_ACCENT;
-        break;
       case S_PIN:
         it.label = "Bluetooth PIN";
         it.enabled = a.m().bleAvailable();
@@ -250,7 +277,6 @@ protected:
         snprintf(it.value, sizeof it.value, p.blePinRandom ? "each boot" : "fixed");
         break;
       case S_HDR_GPS: it.label = "GPS"; it.header = true; break;
-      case S_GPS: it.label = "GPS receiver"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", yesNo(p.gpsEnabled)); break;
       case S_GPSADV: it.label = "Share position in adverts"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", yesNo(p.gpsShareInAdvert)); it.enabled = p.gpsEnabled; break;
       // Works with the receiver off too: it is powered just until the first fix.
       case S_GPSTIME: it.label = "Set clock from GPS at boot"; it.choice = true; snprintf(it.value, sizeof it.value, "%s", yesNo(p.gpsTimeSyncAtBoot)); break;
@@ -359,12 +385,10 @@ protected:
       case S_NOTIFY: p.notify = (model::NotifyMode)(((int)p.notify + 4 + dir) % 4); break;
       case S_AUTOADD: p.autoAddContacts = !p.autoAddContacts; break;
       case S_PINGBOT: p.pingBot = !p.pingBot; break;
-      case S_BLE: p.bleEnabled = !p.bleEnabled; break;
       case S_PINMODE:
         p.blePinRandom = !p.blePinRandom;
         a.toast("Applies after a restart", C_ACCENT);
         break;
-      case S_GPS: p.gpsEnabled = !p.gpsEnabled; break;
       case S_GPSADV: p.gpsShareInAdvert = !p.gpsShareInAdvert; break;
       case S_GPSTIME: p.gpsTimeSyncAtBoot = !p.gpsTimeSyncAtBoot; break;
       case S_TBATT:

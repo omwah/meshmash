@@ -5,7 +5,8 @@ shot menu
 key bksp
 shot menu-bksp-home
 key menu
-key down 5
+key up 20
+key down 7
 shot menu-diag-sel
 key enter
 shot diag-radio
@@ -22,22 +23,41 @@ key enter
 shot diag-power-after
 hold esc 900
 key menu
-key down 6
+key up 20
+key down 8
 key enter
 shot packet-log
 hold esc 900
 gps on
 key menu
-key down 7
+key up 20
+key down 5
 key enter
 shot gps
+# Left/Right switch the receiver on the GPS page itself.
+key left
+shot gps-off
+key right
+shot gps-on
+hold esc 900
+# Bluetooth: one press switches it; the main menu shows the state.
+key menu
+key up 20
+key down 6
+shot menu-ble-sel
+key enter
+shot menu-ble-off
+key right
+shot menu-ble-on
 hold esc 900
 key menu
+key up 20
 key down
 key enter
 shot heard
 hold esc 900
 key menu
+key up 20
 key down 2
 key enter
 wait 3500

@@ -187,10 +187,12 @@ A command being typed (`2g`) shows at the right of the footer.
   - System page: heap, battery, uptime, capacity.
 - **Packet log:** every received packet with its type, route, hops, SNR, RSSI, length and duplicate flag.
 - **Heard adverts** and **Discover repeaters**.
+- **Bluetooth switch:** Menu → Bluetooth turns the phone connection on or off in one press (it asks first if a phone is connected). Not available in the USB-only build or in remote node mode.
+- **Power page:** the last Diagnostics page shows screen-off time, the CPU clock and a battery-voltage trend taken only from rested readings (screen off, radio quiet). Enter resets the counters.
 - **GPS:**
-  - The receiver is off by default.
+  - The receiver is off by default; Left/Right on the GPS page (Menu → GPS) switches it.
   - Sharing your position in adverts and setting the clock at boot are separate options, also off by default.
-- **Settings:** node name, theme, brightness, screen timeout, lock when the screen is off and touch scroll direction (T-Deck), text size, chat preview, key filter, sound, new-message alert and LED brightness, auto-add, ping bot, Bluetooth and its PIN (a new random one at every boot by default; Settings → Bluetooth PIN offers to switch to a fixed one and asks for it; a new PIN applies after a restart, and the phone has to forget the old pairing), factory reset.
+- **Settings:** node name, theme, brightness, screen timeout, lock when the screen is off and touch scroll direction (T-Deck), text size, chat preview, key filter, sound, new-message alert and LED brightness, auto-add, ping bot, the Bluetooth PIN (a new random one at every boot by default; Settings → Bluetooth PIN offers to switch to a fixed one and asks for it; a new PIN applies after a restart, and the phone has to forget the old pairing), factory reset.
 - **New-message alert:** on the T-Deck, which has no LED, the key backlight blinks instead (at the LED brightness). On the Cardputer, a 2-second burst of colours on the RGB LED with the screen left off (the default, easiest on the battery), the screen turning on, both, or neither. The chime follows the Sound setting either way. Enter on the setting previews the colours. The LED runs on the backlight's power, so the screen glows briefly while it flashes.
 - **Ping bot** (local node mode, off by default):
   - A direct message that is just `ping` or `test` gets an automatic reply with the path it took, for example `pong: 2 hops a1>Hilltop, SNR 6.5`.

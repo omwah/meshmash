@@ -454,10 +454,16 @@ public:
     else if (k.code == K_ENTER) {
       if (a.m().gpsSyncTime()) a.toast("Clock set from GPS", C_OK);
       else a.toast("No GPS fix yet", C_WARN);
+    } else if (k.code == K_LEFT || k.code == K_RIGHT) {
+      if (k.repeat) return;
+      model::Prefs p = a.m().prefs();   // the Settings row's old path
+      p.gpsEnabled = !p.gpsEnabled;
+      a.m().setPrefs(p);
+      a.applyPrefs();
     } else if (k.code == K_TAB) openSettings(a);
   }
   const Hint* hints(App&) override {
-    static const Hint h[] = {{"ent", "set clock"}, {"tab", "settings"}, {"esc", "back"}, {nullptr, nullptr}};
+    static const Hint h[] = {{"<>", "on/off"}, {"ent", "set clock"}, {"tab", "settings"}, {"esc", "back"}, {nullptr, nullptr}};
     return h;
   }
 

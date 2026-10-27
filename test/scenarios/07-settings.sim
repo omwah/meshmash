@@ -1,6 +1,7 @@
 # Settings, theme switching and backup.
 key menu
-key down 8
+key up 20
+key down 9
 key enter
 shot settings
 # Radio has its own heading below the identity rows (Remote node is disabled in local mode).
@@ -39,13 +40,14 @@ key down 2
 key right
 shot settings-ping-bot
 key left
-key down 10
+key down 8
 shot settings-end
 key down 5
 shot settings-telemetry
 hold esc 900
 key menu
-key down 9
+key up 20
+key down 10
 key enter
 shot backup
 key down

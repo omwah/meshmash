@@ -651,6 +651,14 @@ Diag MockModel::diag() const {
   d.flashTotalKb = 1408;
   d.channels = (uint8_t)_nChannels;
   d.channelsMax = 8;
+  uint32_t up = uptimeMs() - _powerResetMs;
+  d.power.sinceS = up / 1000;
+  d.power.cpuMhz = 160;
+  d.power.lowClockS = d.power.sinceS * 97 / 100;
+  d.power.screenOffS = d.power.sinceS * 97 / 100;
+  d.power.battMv = 3912;
+  d.power.rateKnown = d.power.sinceS >= 3600;
+  d.power.mvPerHour = -18;
   return d;
 }
 

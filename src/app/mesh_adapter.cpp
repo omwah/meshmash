@@ -914,8 +914,6 @@ model::Diag MeshAdapter::diag() const {
   d.archiveOn = ms.archiveOn;
   d.msgOnCard = ms.onCard;
   _plat.sdSpace(d.sdUsedKb, d.sdTotalKb);
-  d.cpuMhz = _plat.cpuMhz();
-  d.lowClockS = _plat.lowClockSeconds();
   if (_hasOpen) {
     d.winN = (uint16_t)_msgs.count();
     d.winFirst = d.winN ? _msgs.at(0).seq : 0;
@@ -925,6 +923,7 @@ model::Diag MeshAdapter::diag() const {
     d.winThreadLast = ti ? ti->lastSeq : 0;
   }
 #endif
+  d.power = _plat.power();
   d.battMv = getBattMilliVolts();
   d.battPct = batteryPercent(d.battMv);
   d.charging = _plat.charging();

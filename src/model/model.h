@@ -107,6 +107,21 @@ struct Preset {
   uint8_t pathHashSize;           // bytes per path hop to use, 0 = leave as is
 };
 
+// What this device's power management has been doing since its counters were reset
+// (the handheld's own, in remote mode too). Zero or false means not measured.
+struct Power {
+  uint32_t sinceS;                      // since the counters were reset (or boot)
+  uint32_t cpuMhz, lowClockS;           // the CPU clock now, and seconds spent on the slower idle clock
+  uint32_t screenOffS;
+  bool sleepKnown;                      // light sleep exists on this build
+  uint32_t sleepS, wakes;               // time inside sleep calls with the screen off, and how often they returned
+  char block[16];                       // why sleep was last skipped
+  uint16_t battMv;                      // the latest rested reading (0: none yet)
+  bool charging;                        // the trend is paused: a host is attached or the voltage is rising
+  bool rateKnown;
+  int16_t mvPerHour;                    // change in rested voltage per hour (negative: draining)
+};
+
 struct Diag {
   uint32_t uptimeS;
   int16_t noiseFloor;             // dBm
@@ -132,7 +147,7 @@ struct Diag {
   bool archiveOn;                       // a card was there at boot, so old messages are kept on it
   bool msgOnCard;                       // the history lives on the card, not in the flash
   uint32_t sdUsedKb, sdTotalKb;
-  uint32_t cpuMhz, lowClockS;           // the CPU clock now, and seconds spent on the slower idle clock
+  Power power;
   // The open conversation's window, against what the conversation holds.
   uint16_t winN;
   uint32_t winFirst, winLast, winThreadLast;
@@ -364,6 +379,7 @@ public:
 
   // Diagnostics.
   virtual Diag diag() const = 0;
+  virtual void resetPower() {}                            // zero the Power counters
   virtual int rxLogCount() const = 0;
   virtual bool rxLog(int i, RxLogEntry& out) const = 0;  // 0 = newest
   virtual Gps gps() const = 0;

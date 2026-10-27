@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <esp_random.h>
 #include "app/platform.h"
+#include "app/power_stats.h"
 
 class Esp32Platform : public app::Platform {
 public:
@@ -19,6 +20,12 @@ public:
   uint32_t cpuMhz() override;
   uint32_t lowClockSeconds() override { return lowClockSecondsFn ? lowClockSecondsFn() : 0; }
   uint32_t (*lowClockSecondsFn)() = nullptr;
+  model::Power power() override;
+  void resetPower() override { stats.reset(millis()); }
+  // Call once per loop pass: counts screen-off time and takes a rested battery reading when one
+  // is due. `txCount` is the radio's packets sent so far, `audioBusy` a sound playing.
+  void powerTick(bool screenOff, uint32_t txCount, bool audioBusy);
+  app::PowerStats stats;
   void reboot() override;
   bool blePairing() override { return blePairingFn && blePairingFn(); }
   bool (*blePairingFn)() = nullptr;
@@ -27,4 +34,5 @@ public:
 private:
   bool _sdTried = false, _sdOk = false;
   uint32_t _sdCheckAt = 0;
+  uint32_t _txCount = 0, _txAt = 0;
 };

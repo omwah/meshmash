@@ -49,6 +49,7 @@ public:
   // is given. Returns the number of pages.
   int layout(App& a, const Rect& r, Canvas* cp) {
     int n = build(a);
+    _powerPage = 1 << 20;
     const mc_font_t* f = a.fSmall();
     const int cw = f->width, lh = f->height + 2;
     const int x0 = r.x + 4, w = r.w - 8;
@@ -72,6 +73,7 @@ public:
       bool full = it.kind != DiagItem::Pair;
       if (full && colAt) { row++; colAt = 0; }
       if (row - pageStart[pages - 1] >= rows && pages < 16) pageStart[pages++] = row;
+      if (i == _powerItem) _powerPage = pages - 1;
       cells[nc] = {i, colAt};
       rowOf[nc++] = row;
       if (full || ++colAt >= cols) { row++; colAt = 0; }
@@ -110,12 +112,15 @@ public:
   void onKey(App& a, const Key& k) override {
     if (k.code == K_ESC) a.pop();
     else if (k.repeat) return;
+    else if (k.code == K_ENTER && _page >= _powerPage)
+      a.confirm("Reset the power counters?", [](App& app, int) { app.m().resetPower(); app.invalidate(); });
     else if ((k.code == K_RIGHT || k.code == K_TAB) && _page + 1 < _pages) _page++;
     else if (k.code == K_LEFT && _page > 0) _page--;
   }
   const Hint* hints(App&) override {
     static const Hint h[] = {{"<>", "page"}, {"esc", "back"}, {nullptr, nullptr}};
-    return h;
+    static const Hint hp[] = {{"<>", "page"}, {"ent", "reset"}, {"esc", "back"}, {nullptr, nullptr}};
+    return _page >= _powerPage ? hp : h;
   }
 
 private:
@@ -131,6 +136,15 @@ private:
   void pair(int& n, const char* label, uint8_t col, const char* fmt, ...) __attribute__((format(printf, 5, 6))) {
     DiagItem& it = _items[n++];
     it = DiagItem{DiagItem::Pair, label, {}, 0, 0, 0, col};
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(it.value, sizeof it.value, fmt, ap);
+    va_end(ap);
+  }
+
+  void line(int& n, uint8_t col, const char* fmt, ...) __attribute__((format(printf, 4, 5))) {
+    DiagItem& it = _items[n++];
+    it = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, col};
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(it.value, sizeof it.value, fmt, ap);
@@ -202,20 +216,45 @@ private:
 #ifdef MC_BOARD_TDECK
     storage(n, d);
 #endif
+    power(n, d.power);
     return n;
+  }
+
+  // What the handheld's power management has done since the counters were reset.
+  void power(int& n, const model::Power& p) {
+    _items[n++] = DiagItem{DiagItem::Break, "", {}, 0, 0, 0, 0};
+    _powerItem = n;
+    char t[12], u[12];
+    fmtDur(t, sizeof t, p.sinceS);
+    line(n, C_TEXT, "Since reset %s", t);
+    if (!p.cpuMhz) line(n, C_DIM, "CPU         n/a");
+#ifdef MC_BOARD_TDECK   // the idle clock: it should add up while the screen is off
+    else {
+      fmtDur(u, sizeof u, p.lowClockS);
+      line(n, p.lowClockS ? C_OK : C_TEXT, "CPU         %lu MHz  idle clock %s", (unsigned long)p.cpuMhz, u);
+    }
+#else
+    else line(n, C_TEXT, "CPU         %lu MHz", (unsigned long)p.cpuMhz);
+#endif
+    fmtDur(t, sizeof t, p.screenOffS);
+    line(n, C_TEXT, "Screen off  %s", t);
+    if (!p.sleepKnown) {
+      line(n, C_DIM, "Sleep calls n/a");
+      line(n, C_DIM, "Wakes n/a");
+    } else {
+      fmtDur(u, sizeof u, p.sleepS);
+      if (p.screenOffS) line(n, C_TEXT, "Sleep calls %s  %u%%", u, (unsigned)(p.sleepS * 100ULL / p.screenOffS));
+      else line(n, C_TEXT, "Sleep calls %s  -", u);
+      line(n, C_TEXT, "Wakes %lu%s%s", (unsigned long)p.wakes, p.block[0] ? "   Block: " : "", p.block);
+    }
+    if (p.charging) line(n, C_OK, "Battery     charging");
+    else if (!p.battMv) line(n, C_DIM, "Battery     no rested reading");
+    else if (p.rateKnown) line(n, C_TEXT, "Battery %u mV  %+d mV/h", p.battMv, p.mvPerHour);
+    else line(n, C_TEXT, "Battery %u mV  -", p.battMv);
   }
 
 #ifdef MC_BOARD_TDECK
   // The message store: where the history lives and what has gone wrong with it.
-  void line(int& n, uint8_t col, const char* fmt, ...) __attribute__((format(printf, 4, 5))) {
-    DiagItem& it = _items[n++];
-    it = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, col};
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(it.value, sizeof it.value, fmt, ap);
-    va_end(ap);
-  }
-
   static void clock(uint32_t ts, char* out, int n) {
     if (!ts) { snprintf(out, n, "-"); return; }
     time_t t = (time_t)ts;
@@ -235,11 +274,6 @@ private:
             (unsigned long)(d.sdUsedKb / 1024), (unsigned long)(d.sdTotalKb / 1024));
     else
       line(n, d.archiveOn ? C_WARN : C_DIM, "sd      %s", d.archiveOn ? "gone since boot" : "no card at boot: no archive");
-    if (d.cpuMhz) {   // the idle clock: it should add up while the screen is off
-      char low[12];
-      fmtDur(low, sizeof low, d.lowClockS);
-      line(n, d.lowClockS ? C_OK : C_DIM, "cpu     %lu MHz  idle clock %s", (unsigned long)d.cpuMhz, low);
-    }
     static const char* const kErr[] = {"none", "open", "grow", "write", "lost", "rebuild"};
     char t1[12], t2[12];
     clock(d.msgOkTs, t1, sizeof t1);
@@ -262,11 +296,13 @@ private:
 #endif
 
 #ifdef MC_BOARD_TDECK
-  DiagItem _items[48];   // 42 used
+  DiagItem _items[56];   // 48 used
 #else
-  DiagItem _items[32];   // 28 used
+  DiagItem _items[40];   // 34 used
 #endif
   int _page = 0, _pages = 1;
+  int _powerItem = 0;               // the first Power item, and the page it lands on
+  int _powerPage = 1 << 20;
   uint32_t _last = 0;
   char _title[24];
 };

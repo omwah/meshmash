@@ -160,6 +160,7 @@ void loop() {
     sensors.loop();
     remote->loop();
     uint32_t uiWait = ui_app->loop(millis());
+    platform.powerTick(ui_app->asleep(), 0, sound.busy());
     diagPoll(*ui_app, display, keyboard, platform);
     delay(uiWait < 10 ? uiWait : 10);
     return;
@@ -170,6 +171,7 @@ void loop() {
   sensors.loop();
   adapter.loop();
   uint32_t uiWait = ui_app->loop(millis());
+  platform.powerTick(ui_app->asleep(), radio_driver.getPacketsSent(), sound.busy());
   rtc_clock.tick();
 #if !defined(ENABLE_USB_INTERFACE)
   diagPoll(*ui_app, display, keyboard, platform);

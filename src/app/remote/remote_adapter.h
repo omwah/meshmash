@@ -84,6 +84,7 @@ public:
   bool setRadio(const model::Radio& r) override;
 
   model::Diag diag() const override;
+  void resetPower() override { _plat.resetPower(); }
 
   void setPrefs(const model::Prefs& p) override;
   bool bleConnected() const override { return _link.ready(); }

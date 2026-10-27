@@ -32,10 +32,12 @@ void I2sSound::play(const hal::Tone* tones, int n) {
   if (!_ok) return;
   int16_t frame[64 * 2];
   int budget = DMA_FRAMES * DMA_BUFS;
+  uint32_t total = 0;
   for (int t = 0; t < n && budget > 0; t++) {
     int frames = RATE * tones[t].ms / 1000;
     if (frames > budget) frames = budget;
     budget -= frames;
+    total += (uint32_t)frames * 1000 / RATE;
     int half = tones[t].hz ? RATE / (2 * tones[t].hz) : 0;
     int phase = 0;
     while (frames > 0) {
@@ -53,4 +55,5 @@ void I2sSound::play(const hal::Tone* tones, int n) {
       frames -= k;
     }
   }
+  _until = millis() + total;
 }

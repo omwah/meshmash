@@ -1209,6 +1209,7 @@ model::Diag RemoteAdapter::diag() const {
   d.heapFree = _plat.heapFree();
   d.heapMin = _plat.heapMin();
   d.heapMaxBlock = _plat.heapMaxBlock();
+  d.power = _plat.power();
   d.battMv = _plat.batteryMv();   // this device's (the node's is in link())
   d.battPct = batteryPercent(d.battMv);
   d.charging = _plat.charging();

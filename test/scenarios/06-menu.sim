@@ -11,6 +11,15 @@ key enter
 shot diag-radio
 key right
 shot diag-system
+key right
+shot diag-system-more
+key right
+key right
+shot diag-power
+key enter
+shot diag-power-reset
+key enter
+shot diag-power-after
 hold esc 900
 key menu
 key down 6

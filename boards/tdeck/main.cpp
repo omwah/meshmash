@@ -184,6 +184,7 @@ void loop() {
     remote->loop();
     applyBoardPrefs();
     uint32_t uiWait = ui_app->loop(millis());
+    platform.powerTick(ui_app->asleep(), 0, sound.busy());
     delay(uiWait < 10 ? uiWait : 10);
     return;
   }
@@ -194,6 +195,7 @@ void loop() {
   adapter.loop();
   applyBoardPrefs();
   uint32_t uiWait = ui_app->loop(millis());
+  platform.powerTick(ui_app->asleep(), radio_driver.getPacketsSent(), sound.busy());
   rtc_clock.tick();
   // Don't spin: sleeping lets the idle task halt the CPU until the next
   // interrupt. At most 10 ms, so the radio (one packet buffer, ~40 ms per

@@ -24,6 +24,8 @@ public:
   virtual void sdSpace(uint32_t& usedKb, uint32_t& totalKb) { usedKb = totalKb = 0; }
   virtual uint32_t cpuMhz() { return 0; }              // the CPU clock now (0: unknown)
   virtual uint32_t lowClockSeconds() { return 0; }     // time spent on the slower idle clock since boot
+  virtual model::Power power() { return model::Power(); }   // this device's power counters
+  virtual void resetPower() {}
   virtual void reboot() = 0;
   // A phone has connected over Bluetooth and is not yet authenticated.
   virtual bool blePairing() { return false; }

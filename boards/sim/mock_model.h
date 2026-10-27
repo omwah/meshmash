@@ -119,10 +119,12 @@ public:
   bool restore(bool) override { _fresh = false; _rev++; return true; }
   void factoryReset() override { setEmpty(); }
   void reboot() override {}
+  void resetPower() override { _powerResetMs = uptimeMs(); }
 
   static constexpr uint32_t kEpoch = 1791727500;  // 2026-10-11 14:05 UTC
 
 private:
+  uint32_t _powerResetMs = 0;
   struct Msg {
     model::ThreadId t;
     model::Message m;

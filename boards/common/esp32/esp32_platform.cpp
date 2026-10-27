@@ -61,4 +61,31 @@ uint32_t Esp32Platform::cpuMhz() { return getCpuFrequencyMhz(); }
 
 void Esp32Platform::reboot() { ESP.restart(); }
 
+model::Power Esp32Platform::power() {
+  model::Power p = stats.snapshot(millis());
+  p.cpuMhz = cpuMhz();
+  p.lowClockS = lowClockSeconds();
+  return p;
+}
+
+static bool usbHostAttached() {
+#if ARDUINO_USB_MODE == 1 && ARDUINO_USB_CDC_ON_BOOT
+  return HWCDC::isConnected();
+#else
+  return false;
+#endif
+}
+
+void Esp32Platform::powerTick(bool screenOff, uint32_t txCount, bool audioBusy) {
+  uint32_t now = millis();
+  stats.screen(screenOff, now);
+  if (txCount != _txCount) { _txCount = txCount; _txAt = now; }
+  if (!screenOff) return;
+  bool quiet = !audioBusy && now - _txAt >= 5000;
+  if (!stats.sampleDue(now, quiet)) return;
+  uint32_t sum = 0;
+  for (int i = 0; i < 8; i++) sum += board.getBattMilliVolts();
+  stats.sample(sum / 8, usbHostAttached(), now);
+}
+
 uint16_t Esp32Platform::batteryMv() { return board.getBattMilliVolts(); }

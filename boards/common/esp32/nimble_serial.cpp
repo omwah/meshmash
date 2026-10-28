@@ -23,16 +23,20 @@ void NimbleSerialInterface::begin(const char* prefix, char* name, uint32_t pin_c
     esp_efuse_mac_get_default(a);
     sprintf(name, "%02X%02X%02X%02X%02X%02X", a[5], a[4], a[3], a[2], a[1], a[0]);
   }
-  char dev_name[32 + 16];
-  snprintf(dev_name, sizeof dev_name, "%s%s", prefix, name);
+  snprintf(_devName, sizeof _devName, "%s%s", prefix, name);
+  build();
+}
 
-  NimBLEDevice::init(dev_name);
+// Starts the NimBLE host and controller and publishes the service: at boot, and again each time
+// Bluetooth is switched back on.
+void NimbleSerialInterface::build() {
+  NimBLEDevice::init(_devName);
   // Room for a whole frame in one notify (the ATT header takes 3 bytes).
   NimBLEDevice::setMTU(MAX_FRAME_SIZE + 3);
   // Static PIN shown on our screen, typed on the phone; bonded, MITM, LE Secure.
   NimBLEDevice::setSecurityAuth(true, true, true);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY);
-  NimBLEDevice::setSecurityPasskey(pin_code);
+  NimBLEDevice::setSecurityPasskey(_pin);
 
   _server = NimBLEDevice::createServer();
   _server->setCallbacks(this, false);
@@ -46,6 +50,22 @@ void NimbleSerialInterface::begin(const char* prefix, char* name, uint32_t pin_c
   rx->setCallbacks(this);
   _service->start();
   NimBLEDevice::getAdvertising()->addServiceUUID(SERVICE_UUID);
+  _stacked = true;
+}
+
+// Stops the controller and frees the host's memory, so that nothing of Bluetooth runs (or can
+// keep the chip from sleeping) while it is off.
+void NimbleSerialInterface::teardown() {
+  if (!_stacked) return;
+  NimBLEDevice::getAdvertising()->stop();
+  for (uint16_t h : _server->getPeerDevices()) _server->disconnect(h);
+  // The disconnect completes on the host task; give it a moment.
+  for (int i = 0; i < 50 && _server->getConnectedCount(); i++) delay(10);
+  NimBLEDevice::deinit(true);
+  _server = nullptr;
+  _service = nullptr;
+  _tx = nullptr;
+  _stacked = false;
 }
 
 // ---- NimBLE callbacks (host task)
@@ -90,20 +110,21 @@ void NimbleSerialInterface::enable() {
   if (_enabled) return;
   _enabled = true;
   clearBuffers();
+  if (!_stacked) build();
   NimBLEDevice::getAdvertising()->start();
   _advRestartAt = 0;
 }
 
 void NimbleSerialInterface::disable() {
   _enabled = false;
-  NimBLEDevice::getAdvertising()->stop();
-  for (uint16_t h : _server->getPeerDevices()) _server->disconnect(h);
+  teardown();
   _linked = _authed = _wasAuthed = false;
+  _conn = 0xFFFF;
   _advRestartAt = 0;
 }
 
 size_t NimbleSerialInterface::writeFrame(const uint8_t src[], size_t len) {
-  if (len == 0 || len > MAX_FRAME_SIZE || !_authed || _txLen >= QUEUE) return 0;
+  if (!_stacked || len == 0 || len > MAX_FRAME_SIZE || !_authed || _txLen >= QUEUE) return 0;
   _txq[_txLen].len = len;
   memcpy(_txq[_txLen].buf, src, len);
   _txLen++;
@@ -115,6 +136,7 @@ bool NimbleSerialInterface::isWriteBusy() const {
 }
 
 size_t NimbleSerialInterface::checkRecvFrame(uint8_t dest[]) {
+  if (!_stacked) return 0;
   unsigned long now = millis();
   if (_txLen > 0 && now >= _lastWrite + WRITE_MIN_INTERVAL) {
     _lastWrite = now;

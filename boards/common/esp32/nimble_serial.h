@@ -41,6 +41,8 @@ private:
   void onWrite(NimBLECharacteristic* c, ble_gap_conn_desc* desc) override;
 
   void clearBuffers();
+  void build();
+  void teardown();
 
   struct Frame {
     uint8_t len;
@@ -53,6 +55,8 @@ private:
   NimBLECharacteristic* _tx = nullptr;
   uint32_t _pin = 0;
   bool _enabled = false;
+  bool _stacked = false;   // the NimBLE host and controller are running
+  char _devName[48] = {};
   // Written from NimBLE's host task, read from loop().
   volatile bool _linked = false, _authed = false;
   volatile uint16_t _conn = 0xFFFF;

@@ -32,9 +32,9 @@ void test_no_reading_while_screen_on_or_unsettled_or_busy() {
   PowerStats s;
   TEST_ASSERT_FALSE(s.sampleDue(HOUR, true));                 // screen on
   s.screen(true, HOUR);
-  TEST_ASSERT_FALSE(s.sampleDue(HOUR + 29000, true));         // still settling
-  TEST_ASSERT_FALSE(s.sampleDue(HOUR + 40000, false));        // transmitting or playing
-  TEST_ASSERT_TRUE(s.sampleDue(HOUR + 40000, true));
+  TEST_ASSERT_FALSE(s.sampleDue(HOUR + 5 * MIN - 1, true));     // still settling
+  TEST_ASSERT_FALSE(s.sampleDue(HOUR + 6 * MIN, false));        // transmitting or playing
+  TEST_ASSERT_TRUE(s.sampleDue(HOUR + 5 * MIN, true));
 }
 
 void test_readings_are_five_minutes_apart() {

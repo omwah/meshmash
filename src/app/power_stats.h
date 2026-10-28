@@ -9,10 +9,10 @@ namespace app {
 
 class PowerStats {
 public:
-  static constexpr uint32_t kSettleMs = 30000;          // screen off this long before a reading is rested
+  static constexpr uint32_t kSettleMs = 300000;         // screen off this long before a reading is rested (the cell rebounds from the screen's load)
   static constexpr uint32_t kSampleEveryMs = 300000;    // between rested readings
   static constexpr uint32_t kRateMinMs = 3600000;       // a rate needs this much trend...
-  static constexpr int kNoiseMv = 15;                   // ...and a rise above this is charging, not ADC noise
+  static constexpr int kNoiseMv = 40;                   // ...and a rise above this is charging, not noise or what is left of the rebound
 
   PowerStats() { reset(0); }
 

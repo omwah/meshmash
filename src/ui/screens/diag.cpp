@@ -248,6 +248,7 @@ private:
     else if (!p.battMv) line(n, C_DIM, "Battery     no rested reading");
     else if (p.rateKnown) line(n, C_TEXT, "Battery %u mV  %+d mV/h", p.battMv, p.mvPerHour);
     else line(n, C_TEXT, "Battery %u mV  -", p.battMv);
+    line(n, C_DIM, "fw %s", MC_UI_VERSION);   // so a photo of this page says which build it is
   }
 
 #ifdef MC_BOARD_TDECK
@@ -293,9 +294,9 @@ private:
 #endif
 
 #ifdef MC_BOARD_TDECK
-  DiagItem _items[56];   // 49 used
+  DiagItem _items[56];   // 50 used
 #else
-  DiagItem _items[40];   // 35 used
+  DiagItem _items[40];   // 36 used
 #endif
   int _page = 0, _pages = 1;
   int _powerItem = 0;               // the first Power item, and the page it lands on

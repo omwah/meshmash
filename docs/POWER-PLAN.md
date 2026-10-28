@@ -244,6 +244,7 @@ Acceptance: fewer wakeups and less background work while locked, with no regress
 
 - Make the `Bluetooth` off setting stop and deinitialize the NimBLE stack and controller at runtime, and turning it on reinitialize them, with no reboot. Verify heap is recovered (free and largest block) and that many repeated toggles, including while a phone is connected, stay stable. If runtime reinit proves unreliable, fall back to applying the change on restart.
 - Remote mode always needs BLE and is excluded from light sleep.
+- **Known problem (reported on the device, Phase 5a build): turning Bluetooth off and on again makes the phone lose the pairing; it has to forget the device and pair again.** The bond must survive the toggle. Suspects: the deinit/reinit changes the identity address or the stored keys (`NimBLEDevice::deinit(true)` with `clearAll` semantics, or `setSecurityAuth`/passkey set differently on the second `build()`), or the device name or address changes. Check what bond data is left in NVS after `teardown()`, compare the advertised address before and after, and make `build()` reproduce the first start exactly. Fix before 5b; if the stack can't keep the bond, fall back to applying the setting at restart.
 
 #### Bluetooth switch on the main menu
 

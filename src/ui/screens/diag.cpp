@@ -36,7 +36,7 @@ public:
     // The header is drawn before the page: lay out once to know the count.
     _pages = layout(a, a.content(), nullptr);
     if (_page >= _pages) _page = _pages - 1;
-    snprintf(_title, sizeof _title, "Diagnostics %d/%d", _page + 1, _pages);
+    snprintf(_title, sizeof _title, "Diag: %s %d/%d", _names[_page], _page + 1, _pages);
     return _title;
   }
   bool tick(App&, uint32_t now) override {
@@ -53,7 +53,7 @@ public:
     const mc_font_t* f = a.fSmall();
     const int cw = f->width, lh = f->height + 2;
     const int x0 = r.x + 4, w = r.w - 8;
-    const int rows = (r.h - 6) / lh;
+    const int rows = (r.h - 6) / lh - 1;             // the first row of every page is the firmware version
     const int pairW = 9 * cw + 9 * cw;               // label + value
     const int cols = w >= 2 * pairW + 8 ? 2 : 1;
 
@@ -63,16 +63,31 @@ public:
     static int rowOf[64];
     int row = 0, colAt = 0, nc = 0;
     int pageStart[16] = {0}, pages = 1;
+    // Each page is named for its section; one that runs over says so ("Radio (2)").
+    const char* sec = "Radio";
+    int sub = 1;
+    auto name = [&](int p) {
+      if (sub > 1) snprintf(_names[p], sizeof _names[p], "%s (%d)", sec, sub);
+      else snprintf(_names[p], sizeof _names[p], "%s", sec);
+    };
+    name(0);
     for (int i = 0; i < n && nc < 64; i++) {
       const DiagItem& it = _items[i];
       if (it.kind == DiagItem::Break) {
         if (colAt) { row++; colAt = 0; }
+        sec = it.label;
+        sub = 1;
         if (row - pageStart[pages - 1] > 0 && pages < 16) pageStart[pages++] = row;
+        name(pages - 1);
         continue;
       }
       bool full = it.kind != DiagItem::Pair;
       if (full && colAt) { row++; colAt = 0; }
-      if (row - pageStart[pages - 1] >= rows && pages < 16) pageStart[pages++] = row;
+      if (row - pageStart[pages - 1] >= rows && pages < 16) {
+        pageStart[pages++] = row;
+        sub++;
+        name(pages - 1);
+      }
       if (i == _powerItem) _powerPage = pages - 1;
       cells[nc] = {i, colAt};
       rowOf[nc++] = row;
@@ -83,10 +98,15 @@ public:
     int page = _page < pages ? _page : pages - 1;
     int first = pageStart[page], last = page + 1 < pages ? pageStart[page + 1] : 1 << 20;
 
+    // On every page, so a photo of any of them names the build. The label can be long
+    // (1.2.0+19.9bf8937.dirty), hence the whole width.
+    char fw[48];
+    snprintf(fw, sizeof fw, "fw %s", MC_UI_VERSION);
+    c.text(x0, r.y + 3, fw, f, C_DIM, -1, w);
     for (int k = 0; k < nc; k++) {
       if (rowOf[k] < first || rowOf[k] >= last) continue;
       const DiagItem& it = _items[cells[k].item];
-      int y = r.y + 3 + (rowOf[k] - first) * lh;
+      int y = r.y + 3 + (rowOf[k] - first + 1) * lh;
       if (it.kind == DiagItem::Meter) {
         int lw = 6 * cw, vw = 9 * cw;
         c.text(x0, y, it.label, f, C_DIM);
@@ -180,7 +200,7 @@ private:
     DiagItem& line = _items[n++];
     line = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, C_ACCENT};
     snprintf(line.value, sizeof line.value, "%.3f/%g/SF%u/4:%u %ddBm", rd.freqMHz, rd.bwKHz, rd.sf, rd.cr, rd.txDbm);
-    _items[n++] = DiagItem{DiagItem::Break, "", {}, 0, 0, 0, 0};
+    _items[n++] = DiagItem{DiagItem::Break, "System", {}, 0, 0, 0, 0};
     // System.
     meter(n, "heap", (int)(d.heapFree / 1024), 0, 160, d.heapFree < 20000 ? C_ERR : d.heapFree < 40000 ? C_WARN : C_OK,
           "%luK", (unsigned long)(d.heapFree / 1024));
@@ -209,24 +229,30 @@ private:
     uint8_t k[6];
     a.m().selfKey(k);
     pair(n, "node id", C_ACCENT, "%02X%02X%02X%02X", k[0], k[1], k[2], k[3]);
-    // Whole width: the label can be long (1.2.0+19.9bf8937.dirty).
-    DiagItem& fw = _items[n++];
-    fw = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, C_DIM};
-    snprintf(fw.value, sizeof fw.value, "fw %s", MC_UI_VERSION);
 #ifdef MC_BOARD_TDECK
     storage(n, d);
 #endif
-    power(n, d.power);
+    power(n, a, d.power);
     return n;
   }
 
   // What the handheld's power management has done since the counters were reset.
-  void power(int& n, const model::Power& p) {
-    _items[n++] = DiagItem{DiagItem::Break, "", {}, 0, 0, 0, 0};
+  void power(int& n, App& a, const model::Power& p) {
+    _items[n++] = DiagItem{DiagItem::Break, "Power", {}, 0, 0, 0, 0};
     _powerItem = n;
     char t[12], u[12];
     fmtDur(t, sizeof t, p.sinceS);
     line(n, C_TEXT, "Since reset %s", t);
+    {   // the two radios the Phase 5 sleep work depends on
+      const model::Prefs& pr = a.m().prefs();
+      bool remote = a.m().mode() == model::Mode::Remote;
+      if (!a.m().bleAvailable()) line(n, C_DIM, "Bluetooth   n/a");
+      else if (remote) line(n, C_ACCENT, "Bluetooth   node link");
+      else if (!pr.bleEnabled) line(n, C_DIM, "Bluetooth   off");
+      else line(n, a.m().bleConnected() ? C_OK : C_ACCENT, "Bluetooth   %s", a.m().bleConnected() ? "connected" : "on");
+      model::Gps g = a.m().gps();
+      line(n, !g.enabled ? C_DIM : g.fix ? C_OK : C_WARN, "GPS         %s", !g.enabled ? "off" : g.fix ? "fix" : "searching");
+    }
     if (!p.cpuMhz) line(n, C_DIM, "CPU         n/a");
     else line(n, C_TEXT, "CPU         %lu MHz", (unsigned long)p.cpuMhz);
     if (p.cpuMhz) {   // the idle clock: it should add up while the screen is off
@@ -248,7 +274,6 @@ private:
     else if (!p.battMv) line(n, C_DIM, "Battery     no rested reading");
     else if (p.rateKnown) line(n, C_TEXT, "Battery %u mV  %+d mV/h", p.battMv, p.mvPerHour);
     else line(n, C_TEXT, "Battery %u mV  -", p.battMv);
-    line(n, C_DIM, "fw %s", MC_UI_VERSION);   // so a photo of this page says which build it is
   }
 
 #ifdef MC_BOARD_TDECK
@@ -262,7 +287,7 @@ private:
   }
 
   void storage(int& n, const model::Diag& d) {
-    _items[n++] = DiagItem{DiagItem::Break, "", {}, 0, 0, 0, 0};
+    _items[n++] = DiagItem{DiagItem::Break, "Storage", {}, 0, 0, 0, 0};
     if (d.flashTotalKb)
       meter(n, "flash", (int)d.flashUsedKb, 0, (int)d.flashTotalKb,
             d.flashUsedKb * 10 >= d.flashTotalKb * 9 ? C_ERR : d.flashUsedKb * 4 >= d.flashTotalKb * 3 ? C_WARN : C_OK,
@@ -294,15 +319,16 @@ private:
 #endif
 
 #ifdef MC_BOARD_TDECK
-  DiagItem _items[56];   // 50 used
+  DiagItem _items[56];   // 49 used
 #else
-  DiagItem _items[40];   // 36 used
+  DiagItem _items[40];   // 37 used
 #endif
   int _page = 0, _pages = 1;
   int _powerItem = 0;               // the first Power item, and the page it lands on
   int _powerPage = 1 << 20;
   uint32_t _last = 0;
-  char _title[24];
+  char _title[40];
+  char _names[16][14];   // each page's section
 };
 
 DiagScreen s_diag;

@@ -631,6 +631,10 @@ uint32_t App::loop(uint32_t now) {
     _idleTold = _asleep;
     _idleHook->setIdle(_asleep);
   }
+  if (_quietTold != _asleep) {
+    _quietTold = _asleep;
+    _m.setQuiet(_asleep);
+  }
 
   uint32_t wait = _in.wakeIn(now);
 #if MC_TOUCH

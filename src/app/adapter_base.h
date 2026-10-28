@@ -110,6 +110,11 @@ public:
   bool rxLog(int i, model::RxLogEntry& out) const override;
   model::Gps gps() const override { return _plat.gps(); }
   bool gpsSyncTime() override;
+  void setQuiet(bool quiet) override { _quiet = quiet; }
+  // Whether the receiver's output needs reading now. GPS on is permission to use it, not a reason
+  // to read it: with the screen off only the boot clock sync and position sharing want it. (What
+  // arrives meanwhile waits in the UART's buffer, which drops the overflow.)
+  bool gpsWanted() const { return !_quiet || _bootGpsPending || _bootGpsUntil || _prefs.gpsShareInAdvert; }
 
   const model::Prefs& prefs() const override { return _prefs; }
   model::BackupStatus backupStatus() const override;
@@ -277,6 +282,7 @@ protected:
   SavedPassword _passwords[6] = {};
   uint32_t _bootGpsUntil = 0;     // boot-time GPS clock sync in progress until
   bool _bootGpsPending = false;   // ...to be started by the first loop()
+  bool _quiet = false;            // the screen is off
 };
 
 // Hex of the first bytes of a key, for names we don't know.

@@ -211,6 +211,31 @@ GPS:
 
 Build an inventory of every timer: owner, next deadline, and whether it is essential while locked. Adapter work is not optional just because it is outside MeshCore.
 
+### Timer inventory (as of Phase 4)
+
+| Timer | Owner | Period | Screen off |
+| --- | --- | --- | --- |
+| Main loop | `loop()` in each board | at most 10 ms, none while MeshCore has work | Unchanged until Phase 5 (light sleep) |
+| MeshCore retries, ACK timeouts, CAD, advert schedule | MeshCore | its own | Preserved |
+| Pending-send retry, request deadline | `AdapterBase`/adapters | per message | Preserved |
+| MeshCore prefs sync | `MeshAdapter::loop` | 1 s | Unchanged (a memcmp) |
+| Contact-count check, ping reply | `MeshAdapter` | every loop / 2 s one-shot | Preserved |
+| Auto backup, config save | `storageTick` | 10 s after a change, at most 1/min | Unchanged |
+| Boot GPS clock sync | `gpsTick` | one-shot, 10 min cap | Preserved |
+| GPS NMEA read | `sensors.loop()` | every loop | Skipped unless boot sync or position sharing (`gpsWanted()`); the UART buffer drops what it cannot hold |
+| Remote message poll | `RemoteAdapter` | 15 s | Preserved (delivery) |
+| Remote battery/stats poll | `RemoteAdapter` | 30 s | 5 min |
+| Remote contact refresh | `RemoteAdapter` | 60 s | 5 min |
+| Remote contact cache save | `RemoteAdapter` | 10 s after a change, at most 2 min | Unchanged |
+| Remote position push | `RemoteAdapter::positionTick` | 30 s check | Unchanged (it is location reporting) |
+| UI render, animation, header clock | `App::loop` | on change, 40 ms animating | Suspended while asleep |
+| Key scan | keyboard drivers | 20 ms | T-Deck 50 ms; Cardputer suspended, G0 still read |
+| Battery/diagnostic sample | `PowerStats` | 5 min | Unchanged |
+| CPU clock | `CpuClock` | on screen state/setting change | 160 MHz |
+
+GPS requests from the GPS screen need no code: the screen is only reachable with the screen on, when the receiver is read as before.
+Telemetry location answers to other nodes use the last position the receiver gave; with the screen off and position sharing off that is the position from when the screen went dark.
+
 Acceptance: fewer wakeups and less background work while locked, with no regression in enabled services or persistence.
 
 ## Phase 5: light sleep with BLE off

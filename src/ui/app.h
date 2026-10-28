@@ -217,6 +217,7 @@ private:
   hal::Led* _led = nullptr;
   hal::IdleHook* _idleHook = nullptr;
   bool _idleTold = false;        // what the hook was last told (the screen asleep)
+  bool _quietTold = false;       // and what the model was told
   bool _dimmed = false;          // the backlight is down before the screen goes off
 #if MC_TOUCH
   hal::Touch* _touch = nullptr;

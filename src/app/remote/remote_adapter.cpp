@@ -17,6 +17,10 @@ constexpr uint32_t DISCOVER_LISTEN_MS = 8000;
 constexpr uint32_t STATS_EVERY_MS = 30000;
 constexpr uint32_t CONTACTS_EVERY_MS = 60000;
 constexpr uint32_t POLL_EVERY_MS = 15000;
+// With the screen off nobody sees the battery or the contact list: look less often (a message's
+// delivery and the link are not slowed, and the screen's return finds the normal interval due).
+constexpr uint32_t QUIET_STATS_EVERY_MS = 300000;
+constexpr uint32_t QUIET_CONTACTS_EVERY_MS = 300000;
 const char* const kPeerFile = "/ui/peer.bin";
 
 struct PeerFile {
@@ -303,7 +307,7 @@ void RemoteAdapter::loop() {
   if (_synced) {
     uint8_t f[cp::MAX_FRAME];
     // The node's battery, for the header and Diagnostics.
-    if (ms - _statsAt >= STATS_EVERY_MS) {
+    if (ms - _statsAt >= (_quiet ? QUIET_STATS_EVERY_MS : STATS_EVERY_MS)) {
       _statsAt = ms;
       f[0] = cp::GET_BATT_AND_STORAGE;
       q(f, 1);
@@ -311,7 +315,7 @@ void RemoteAdapter::loop() {
     }
     // Contacts added or changed since the last list (a lost push, an advert
     // from a node we don't have yet).
-    if ((ms - _contactsAt >= CONTACTS_EVERY_MS || (_contactsSoon && (int32_t)(ms - _contactsSoon) >= 0)) &&
+    if ((ms - _contactsAt >= (_quiet ? QUIET_CONTACTS_EVERY_MS : CONTACTS_EVERY_MS) || (_contactsSoon && (int32_t)(ms - _contactsSoon) >= 0)) &&
         !_client.pending(cp::GET_CONTACTS)) {
       _contactsAt = ms;
       _contactsSoon = 0;

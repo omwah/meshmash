@@ -386,6 +386,8 @@ public:
   // Diagnostics.
   virtual Diag diag() const = 0;
   virtual void resetPower() {}                            // zero the Power counters
+  // The screen is off: skip what only the screen shows (cosmetic polls, GPS nobody asked for).
+  virtual void setQuiet(bool quiet) { (void)quiet; }
   virtual int rxLogCount() const = 0;
   virtual bool rxLog(int i, RxLogEntry& out) const = 0;  // 0 = newest
   virtual Gps gps() const = 0;

@@ -165,7 +165,7 @@ void setup() {
 void loop() {
 #if defined(BLE_PIN_CODE) && MC_UI_REMOTE
   if (remoteMode) {
-    sensors.loop();
+    if (remote->gpsWanted()) sensors.loop();
     remote->loop();
     uint32_t uiWait = ui_app->loop(millis());
     platform.powerTick(ui_app->asleep(), 0, sound.busy());
@@ -176,7 +176,7 @@ void loop() {
 #endif
   the_mesh.loop();
   interfaces.loop();
-  sensors.loop();
+  if (adapter.gpsWanted()) sensors.loop();   // screen off: only for the clock and position sharing
   adapter.loop();
   uint32_t uiWait = ui_app->loop(millis());
   platform.powerTick(ui_app->asleep(), radio_driver.getPacketsSent(), sound.busy());

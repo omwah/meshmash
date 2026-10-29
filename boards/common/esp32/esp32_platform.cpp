@@ -99,6 +99,10 @@ model::Power Esp32Platform::power() {
   model::Power p = stats.snapshot(millis());
   p.cpuMhz = cpuMhz();
   p.lowClockS = lowClockSeconds();
+  p.sleepKnown = _sleepKnown;
+  p.sleepS = _sleepMs / 1000;
+  p.wakes = _wakes;
+  snprintf(p.block, sizeof p.block, "%s", _block);
 #ifdef MC_BOARD_TDECK   // Bluetooth pairing probes (see docs/POWER-PLAN.md), until that bug is found
   nvs_stats_t ns;
   if (nvs_get_stats(nullptr, &ns) == ESP_OK) {
@@ -110,14 +114,6 @@ model::Power Esp32Platform::power() {
   p.bleConnects = bleLastPeer.connects;
   p.bleAuthOk = bleLastPeer.authOk;
   p.bleAuthFail = bleLastPeer.authFail;
-  p.blePeerOta = bleLastPeer.otaType;
-  p.blePeerId = bleLastPeer.idType;
-  p.blePeerBonded = bleLastPeer.bonded;
-  memcpy(p.bleRec, bleLastPeer.rec, sizeof p.bleRec);
-  bleRecordNow(p.bleRec[2]);
-  p.bleFailEnc = bleLastPeer.failEnc;
-  p.bleFailAuth = bleLastPeer.failAuth;
-  p.bleFailBond = bleLastPeer.failBond;
   for (int i = 0; i < BleLastPeer::HIST; i++) {
     p.bleHist[i * 2] = bleLastPeer.hist[i][0];
     p.bleHist[i * 2 + 1] = bleLastPeer.hist[i][1];
@@ -134,6 +130,8 @@ static bool usbHostAttached() {
   return false;
 #endif
 }
+
+bool Esp32Platform::usbHost() { return usbHostAttached(); }
 
 void Esp32Platform::powerTick(bool screenOff, uint32_t txCount, bool audioBusy) {
   uint32_t now = millis();

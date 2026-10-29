@@ -21,6 +21,7 @@ public:
     *this = PowerStats(Tag{});
     _t0 = now;
     _off = off;
+    _skip = off;
     _offSince = now;
   }
 
@@ -31,6 +32,7 @@ public:
     else _offMs += now - _offSince;
     _off = off;
     _ivN = 0;                                           // a new screen-off interval starts
+    _skip = off;                                        // its first reading is still on the cell's rebound curve
   }
 
   // Is it time for a rested reading? `quiet`: no transmission in the last few seconds and no
@@ -52,6 +54,7 @@ public:
       return;
     }
     if (_n && (int)mv > (int)_latest + kNoiseMv) { startCharging(mv); return; }
+    if (_skip) { _skip = false; return; }               // only the next one is a real point of the trend
     if (!_n) { _first = mv; _firstMs = now; }
     _latest = mv;
     _latestMs = now;
@@ -93,7 +96,7 @@ private:
   void startCharging(uint32_t mv) { _charging = true; _prev = mv; _n = 0; _ivN = 0; }
 
   uint32_t _t0 = 0;
-  bool _off = false;
+  bool _off = false, _skip = false;
   uint32_t _offSince = 0, _offMs = 0;
   bool _haveSample = false, _charging = false;
   uint32_t _lastTry = 0;

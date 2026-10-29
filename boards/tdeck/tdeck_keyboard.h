@@ -19,6 +19,7 @@ public:
   bool poll(hal::KeyEvent& ev) override;
   bool present() const { return _ok; }
   bool rawMode() const { return _raw; }
+  bool unlockHeld() const { return _clickDown; }   // the click is down (light sleep waits for the release)
   bool hasUnlockButton() const override { return true; }
   const char* unlockHow() const override { return "click the trackball"; }
   bool unlockPressed() override { bool u = _unlock; _unlock = false; return u; }

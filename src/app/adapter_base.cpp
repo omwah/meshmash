@@ -1,6 +1,7 @@
 #include "app/adapter_base.h"
 #include "app/radio_presets.h"
 #include "app/lock_pref.h"
+#include "app/diag_pages.h"
 #include <Arduino.h>
 #include <helpers/AdvertDataHelpers.h>
 #include <stdarg.h>
@@ -91,6 +92,7 @@ void AdapterBase::loadUiPrefs(fs::FS& fs) {
   }
   // A new install locks when the screen times out; one from before the Cardputer's G0 keeps its any-key wake.
   settleLockPref(_ui.lockOff, _ui.lockSet, fresh, MC_HAS_TRACKBALL);
+  settleDiagPages(_ui.diagPages, _ui.diagSet, fresh);
 }
 
 model::Mode readDeviceMode(fs::FS& fs) {
@@ -136,6 +138,7 @@ void AdapterBase::uiToPrefs() {
   p.clock12 = _ui.clock12;
   p.notify = _ui.notifyMode <= 3 ? (model::NotifyMode)_ui.notifyMode : model::NotifyMode::Led;
   p.cpuSpeed = _ui.cpuSpeed < MC_CPU_LEVELS ? _ui.cpuSpeed : 0;
+  p.diagPages = diagPagesShown(_ui.diagPages);
 }
 
 void AdapterBase::prefsToUi(const model::Prefs& p) {
@@ -164,6 +167,8 @@ void AdapterBase::prefsToUi(const model::Prefs& p) {
   _ui.ledLevel = p.ledBrightness;
   _ui.clock12 = p.clock12;
   _ui.cpuSpeed = p.cpuSpeed < MC_CPU_LEVELS ? p.cpuSpeed : 0;
+  _ui.diagPages = p.diagPages & DIAG_ALL;
+  _ui.diagSet = 1;
 }
 
 void AdapterBase::setUiMuted(int slot, bool muted) {

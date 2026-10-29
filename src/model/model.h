@@ -122,10 +122,6 @@ struct Power {
   int16_t mvPerHour;                    // change in rested voltage per hour (negative: draining)
   uint16_t nvsUsed = 0, nvsTotal = 0;   // entries in the flash settings store (0: unknown); bonds are written there
   uint8_t bleConnects = 0, bleAuthOk = 0, bleAuthFail = 0;   // phone connections since boot, and how their pairing ended
-  uint8_t blePeerOta = 0xFF, blePeerId = 0xFF;                // address types of the last phone (0 public, 1 random)
-  bool blePeerBonded = false;
-  bool bleFailEnc = false, bleFailAuth = false, bleFailBond = false;   // what the last failed pairing had
-  char bleRec[3][2][40] = {};                                  // the stored pairing record before off, after on, and now (see BleLastPeer)
   char bleHist[9] = {};                                       // last connections, two characters each (see BleLastPeer)
   int8_t bleBonds = -1;                    // phones paired with the Bluetooth stack (-1: none built); finding why a toggle loses the pairing
 };
@@ -234,6 +230,7 @@ struct Prefs {
   Mode deviceMode;                // takes effect after a restart
   bool pingBot;                   // answer "ping" DMs with the path they took
   NotifyMode notify;              // what a new message does
+  uint8_t diagPages;              // Diagnostics pages shown, a bit each (app/diag_pages.h)
   uint8_t cpuSpeed;               // the CPU clock while the screen is on: 0 the board's own, 1 balanced, 2 battery saver
   bool clock12;                   // times as 1:28 PM; false: 13:28
   uint8_t ledBrightness;          // the notification light, 1-255 (the T-Deck's is the key backlight)

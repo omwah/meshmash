@@ -643,7 +643,8 @@ uint32_t App::loop(uint32_t now) {
 #endif
   uint32_t led = ledTick(now);
   if (led && (!wait || led < wait)) wait = led;
-  return wait ? wait : 50;
+  // Nothing due: the screen is off, so a second is as good as any; lit, check on the next frame.
+  return wait ? wait : (_asleep ? 1000 : 50);
 }
 
 // ---- the status light

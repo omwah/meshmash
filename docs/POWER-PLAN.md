@@ -270,6 +270,8 @@ This can ship ahead of the rest of Phase 5, since it is a UI change only.
 - Keep SX1262 RX active while the CPU sleeps.
 - T-Deck first, then Cardputer.
 
+**5b status (2026-10-29, T-Deck only, not yet tried on the device):** `src/app/sleep_gate.h` decides, `boards/common/esp32/light_sleep.h` sleeps (same steps as `ESP32Board::sleep()` with the length in ms and a GPIO0 low-level wake, enabled only while the click is released; kept in our tree instead of a dependency patch). The T-Deck loop sleeps at most 1 s per pass when: screen off and locked (unlocked would need a key wake, not wired), Bluetooth off (and not remote mode), no USB host, no audio, no GPS wanted, no pending MeshCore work, and the click released. Why a pass did not sleep shows as `Block:` on the Power page, with `Sleep calls` and `Wakes`. `App::loop` now returns 1000 ms when the screen is off and nothing is due. The Cardputer is not wired yet (G0 is the same GPIO0 low wake; its key scan is already suspended while locked).
+
 ### 5c: deadlines
 
 `hasPendingWork()` is not a deadline API. Add an explicit next-deadline query covering delayed sends, TX completion/timeouts, retries, advertisements, CAD/noise/AGC work, adapter timers from the Phase 4 inventory, and deferred writes. Until every source exposes a deadline, cap each sleep at 1 s (still about 100 times fewer wakes than 10 ms polling); raise the cap only for sources covered by the deadline query.

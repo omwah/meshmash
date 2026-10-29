@@ -43,6 +43,7 @@ MockModel::MockModel() {
   _prefs.vimKeys = MC_VIM_KEYS_DEFAULT;
   _prefs.trackball = true;
   _prefs.lockOnTimeout = true;
+  _prefs.diagPages = 31;   // every Diagnostics page (a fresh install shows only Radio and System)
   _prefs.autoAddContacts = true;
   _prefs.autoBackup = true;
   _prefs.backupIdentity = true;

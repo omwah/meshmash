@@ -53,6 +53,11 @@ key down 8
 shot settings-end
 key down 5
 shot settings-telemetry
+# A Diagnostics page can be hidden and shown again (a fresh install shows Radio and System only).
+key enter
+shot settings-power-page-hidden
+key enter
+shot settings-power-page-shown
 hold esc 900
 key menu
 key up 20

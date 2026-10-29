@@ -48,6 +48,7 @@ void test_readings_are_five_minutes_apart() {
 void test_rate_needs_an_hour_and_two_readings() {
   PowerStats s;
   s.screen(true, 0);
+  s.sample(3950, false, 20000);                               // the first of a stretch: still rebounding
   s.sample(4000, false, 40000);
   TEST_ASSERT_FALSE(s.snapshot(HOUR).rateKnown);              // one reading
   s.sample(3990, false, 40000 + 30 * MIN);
@@ -57,6 +58,21 @@ void test_rate_needs_an_hour_and_two_readings() {
   TEST_ASSERT_TRUE(p.rateKnown);
   TEST_ASSERT_EQUAL(3982, p.battMv);
   TEST_ASSERT_EQUAL(-9, p.mvPerHour);                         // 18 mV in 2 h
+}
+
+void test_the_first_reading_of_each_stretch_is_thrown_away() {
+  PowerStats s;
+  s.screen(true, 0);
+  s.sample(3900, false, 40000);                               // the cell is still recovering from the screen
+  TEST_ASSERT_EQUAL(0, s.snapshot(HOUR).battMv);
+  s.sample(3920, false, 40000 + 5 * MIN);
+  TEST_ASSERT_EQUAL(3920, s.snapshot(HOUR).battMv);
+  s.screen(false, HOUR);
+  s.screen(true, 2 * HOUR);                                   // a new stretch
+  s.sample(3880, false, 2 * HOUR + 5 * MIN);
+  TEST_ASSERT_EQUAL(3920, s.snapshot(3 * HOUR).battMv);       // not taken
+  s.sample(3915, false, 2 * HOUR + 10 * MIN);
+  TEST_ASSERT_EQUAL(3915, s.snapshot(3 * HOUR).battMv);
 }
 
 void test_usb_host_pauses_the_trend_and_restarts_it_at_the_next_reading() {
@@ -88,6 +104,7 @@ void test_a_rise_above_noise_is_charging_without_a_host() {
 void test_interval_is_the_latest_screen_off_stretch() {
   PowerStats s;
   s.screen(true, 0);
+  s.sample(3950, false, 20000);                               // thrown away
   s.sample(4000, false, 40000);
   s.sample(3995, false, 40000 + 5 * MIN);
   uint16_t a, b;
@@ -108,6 +125,7 @@ int main() {
   RUN_TEST(test_no_reading_while_screen_on_or_unsettled_or_busy);
   RUN_TEST(test_readings_are_five_minutes_apart);
   RUN_TEST(test_rate_needs_an_hour_and_two_readings);
+  RUN_TEST(test_the_first_reading_of_each_stretch_is_thrown_away);
   RUN_TEST(test_usb_host_pauses_the_trend_and_restarts_it_at_the_next_reading);
   RUN_TEST(test_a_rise_above_noise_is_charging_without_a_host);
   RUN_TEST(test_interval_is_the_latest_screen_off_stretch);

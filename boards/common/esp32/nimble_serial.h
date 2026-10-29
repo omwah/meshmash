@@ -9,19 +9,12 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
-// What the last phone connection looked like, for the Power page: finding why a bonded phone
-// does not get back in. Written from NimBLE's host task.
+// How the phones' connections have gone since boot, for the Bluetooth diagnostics page. Written from
+// NimBLE's host task.
 struct BleLastPeer {
   volatile uint8_t connects = 0, authOk = 0, authFail = 0;
-  volatile uint8_t otaType = 0xFF, idType = 0xFF;   // address types the phone used / is bonded under
-  volatile bool bonded = false;                     // the stack knew the phone by its identity address
   // The last few connections, two characters each: B known / n not bonded at connect, then how the
   // pairing ended: + encrypted, - failed, ? nothing (it dropped first). Oldest first.
-  volatile bool failEnc = false, failAuth = false, failBond = false;   // the last failed pairing: which of the three it had
-  // The stored pairing record as summarised at three moments: just before Bluetooth is switched
-  // off, just after it is on again, and now. Two lines each (the phone's, then ours); the keys
-  // are shown only as one folded byte, enough to see whether they changed.
-  char rec[3][2][40] = {};
   static constexpr int HIST = 4;
   char hist[HIST][2] = {};
   void connected(bool known) {
@@ -29,10 +22,9 @@ struct BleLastPeer {
     hist[HIST - 1][0] = known ? 'B' : 'n';
     hist[HIST - 1][1] = '?';
   }
-  void ended(bool ok) { if (hist[HIST - 1][0]) hist[HIST - 1][1] = ok ? '+' : '-'; }};
+  void ended(bool ok) { if (hist[HIST - 1][0]) hist[HIST - 1][1] = ok ? '+' : '-'; }
+};
 extern BleLastPeer bleLastPeer;
-// Fills `out` (two lines) from the pairing store as it is now.
-void bleRecordNow(char out[2][40]);
 
 class NimbleSerialInterface : public BaseSerialInterface,
                               NimBLEServerCallbacks,

@@ -16,6 +16,8 @@
 #include "ui/screens/screens.h"
 #include "st7789_tdeck.h"
 #include "tdeck_keyboard.h"
+#include "app/sleep_gate.h"
+#include "light_sleep.h"
 #include "tdeck_idle.h"
 #include "gt911_touch.h"
 #include "esp32_platform.h"
@@ -149,6 +151,7 @@ void setup() {
   idle.begin();
   ui_app->setIdleHook(&idle);
   platform.lowClockSecondsFn = [] { return idle.lowSeconds(); };
+  platform.sleepEnabled();   // light sleep is wired into this loop
   ui_app->begin(ui::screens::boot());
   if (!fs_ok) ui_app->toast("No storage partition: nothing is saved", ui::C_ERR);
   ui_app->loop(millis());
@@ -204,5 +207,24 @@ void loop() {
   // interrupt. At most 10 ms, so the radio (one packet buffer, ~40 ms per
   // packet at SF7) is always read in time; not at all while MeshCore has
   // packets to send or retry.
+  //
+  // Screen off and locked, with Bluetooth off, nothing playing, no USB and nothing to send, the
+  // CPU light-sleeps instead, at most a second: the radio wakes it, and so does the trackball click.
+  // The second is a cap until the work that is due soon can be asked for (docs/POWER-PLAN.md, 5c).
+  app::SleepInputs gate{ui_app->asleep(),
+                        ui_app->locked(),
+                        kBleBuilt && adapter.prefs().bleEnabled,
+                        platform.usbHost(),
+                        sound.busy(),
+                        adapter.gpsWanted(),
+                        the_mesh.hasPendingWork(),
+                        keyboard.unlockHeld()};
+  const char* why = app::sleepBlock(gate);
+  if (ui_app->asleep()) platform.noteBlock(why ? why : "");
+  if (!why && uiWait >= 20) {
+    uint32_t slept = lightSleepMs(P_LORA_DIO_1, PIN_BALL_CLICK, uiWait < 1000 ? uiWait : 1000);
+    if (slept) platform.noteSleep(slept);
+    return;
+  }
   if (!the_mesh.hasPendingWork()) delay(uiWait < 10 ? uiWait : 10);
 }

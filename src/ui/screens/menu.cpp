@@ -148,6 +148,7 @@ enum SItem { S_HDR_ID, S_NAME, S_MODE, S_REMOTE, S_HDR_RADIO, S_RADIO, S_HDR_TIM
              S_HDR_MESH, S_AUTOADD, S_PINGBOT, S_PIN, S_PINMODE,
              S_HDR_GPS, S_GPSADV, S_GPSTIME,
              S_HDR_TELEM, S_TBATT, S_TLOC, S_TENV,
+             S_HDR_DIAG, S_DGRADIO, S_DGSYS, S_DGPOWER, S_DGSTOR, S_DGBT,
              S_HDR_DANGER, S_FACTORY, S_N };
 
 // Row -> item: "Trackball" and "Touch Scrolling Direction" are only there on boards with one (the
@@ -156,6 +157,9 @@ int sItem(int i) {
   if (MC_HAS_TRACKBALL) return i;
   if (i >= S_BALL) i++;       // past Trackball
   if (i >= S_SCROLL) i++;     // past Touch Scrolling Direction
+#ifndef MC_BOARD_TDECK
+  if (i >= S_DGSTOR) i += 2;  // past the Storage and Bluetooth pages, which only the T-Deck has
+#endif
   return i;
 }
 
@@ -194,7 +198,13 @@ public:
   const char* title(App&) override { return "Settings"; }
 
 protected:
-  int count(App&) override { return MC_HAS_TRACKBALL ? S_N : S_N - 2; }
+  int count(App&) override {
+    int n = MC_HAS_TRACKBALL ? S_N : S_N - 2;
+#ifndef MC_BOARD_TDECK
+    n -= 2;
+#endif
+    return n;
+  }
   void item(App& a, int i, MenuItem& it) override {
     i = sItem(i);
     const model::Prefs& p = a.m().prefs();
@@ -305,12 +315,22 @@ protected:
         it.valueCol = m == model::TelemMode::Everyone ? C_WARN : C_ACCENT;
         break;
       }
+      case S_HDR_DIAG: it.label = "DIAGNOSTIC PAGES"; it.header = true; break;
+      case S_DGRADIO: case S_DGSYS: case S_DGPOWER: case S_DGSTOR: case S_DGBT: {
+        static const char* const kName[] = {"Radio page", "System page", "Power page", "Storage page", "Bluetooth page"};
+        it.label = kName[i - S_DGRADIO];
+        it.choice = true;
+        snprintf(it.value, sizeof it.value, "%s", (p.diagPages >> (i - S_DGRADIO)) & 1 ? "shown" : "hidden");
+        it.valueCol = (p.diagPages >> (i - S_DGRADIO)) & 1 ? C_TEXT : C_DIM;
+        break;
+      }
       case S_HDR_DANGER: it.label = "RESET"; it.header = true; break;
       case S_FACTORY: it.label = "Factory reset"; it.valueCol = C_ERR; break;
     }
   }
 
   void activate(App& a, int i) override {
+    const int row = i;   // adjust() maps the row itself
     i = sItem(i);
     switch (i) {
       case S_NAME:
@@ -352,7 +372,7 @@ protected:
       case S_NOTIFY:
       case S_LEDLEVEL: a.flashLed(); break;   // a preview of the colours
       default:
-        adjust(a, i, 1);
+        adjust(a, row, 1);
     }
   }
 
@@ -411,6 +431,10 @@ protected:
         m = (model::TelemMode)(((int)m + 3 + dir) % 3);
         break;
       }
+      case S_DGRADIO: case S_DGSYS: case S_DGPOWER: case S_DGSTOR: case S_DGBT:
+        p.diagPages ^= (uint8_t)(1u << (i - S_DGRADIO));
+        if (!(p.diagPages & 31)) p.diagPages = 1;   // always one page to open
+        break;
       default: return;
     }
     a.m().setPrefs(p);

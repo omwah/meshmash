@@ -2,6 +2,7 @@
 #include <time.h>
 #include "ui/screens/screens.h"
 #include "gen/mc_version.h"
+#include "app/diag_pages.h"
 #include "ui/widgets.h"
 #include "ui/icons.h"
 #include <stdarg.h>
@@ -49,7 +50,6 @@ public:
   // is given. Returns the number of pages.
   int layout(App& a, const Rect& r, Canvas* cp) {
     int n = build(a);
-    _powerPage = 1 << 20;
     const mc_font_t* f = a.fSmall();
     const int cw = f->width, lh = f->height + 2;
     const int x0 = r.x + 4, w = r.w - 8;
@@ -88,7 +88,6 @@ public:
         sub++;
         name(pages - 1);
       }
-      if (i == _powerItem) _powerPage = pages - 1;
       cells[nc] = {i, colAt};
       rowOf[nc++] = row;
       if (full || ++colAt >= cols) { row++; colAt = 0; }
@@ -132,7 +131,7 @@ public:
   void onKey(App& a, const Key& k) override {
     if (k.code == K_ESC) a.pop();
     else if (k.repeat) return;
-    else if (k.code == K_ENTER && _page >= _powerPage)
+    else if (k.code == K_ENTER && onPowerPage())
       a.confirm("Reset the power counters?", [](App& app, int) { app.m().resetPower(); app.invalidate(); });
     else if ((k.code == K_RIGHT || k.code == K_TAB) && _page + 1 < _pages) _page++;
     else if (k.code == K_LEFT && _page > 0) _page--;
@@ -140,10 +139,11 @@ public:
   const Hint* hints(App&) override {
     static const Hint h[] = {{"<>", "page"}, {"esc", "back"}, {nullptr, nullptr}};
     static const Hint hp[] = {{"<>", "page"}, {"ent", "reset"}, {"esc", "back"}, {nullptr, nullptr}};
-    return _page >= _powerPage ? hp : h;
+    return onPowerPage() ? hp : h;
   }
 
 private:
+  bool onPowerPage() const { return !strncmp(_names[_page], "Power", 5); }   // Enter resets its counters
   void meter(int& n, const char* label, int num, int lo, int hi, uint8_t col, const char* fmt, ...)
       __attribute__((format(printf, 8, 9))) {
     DiagItem& it = _items[n++];
@@ -176,72 +176,73 @@ private:
     int n = 0;
     char snr[8];
     fmtSnr(snr, sizeof snr, d.lastSnr_x4);
-    // Radio.
-    meter(n, "noise", d.noiseFloor, -130, -80, d.noiseFloor > -95 ? C_ERR : d.noiseFloor > -110 ? C_WARN : C_OK,
-          "%d dBm", d.noiseFloor);
-    meter(n, "rssi", d.lastRssi, -130, -40, d.lastRssi > -100 ? C_OK : d.lastRssi > -115 ? C_WARN : C_ERR, "%d dBm",
-          d.lastRssi);
-    meter(n, "snr", d.lastSnr_x4, -20 * 4, 12 * 4, snrColor(d.lastSnr_x4), "%s dB", snr);
-    meter(n, "duty", d.dutyPct, 0, 10, d.dutyPct >= 10 ? C_ERR : d.dutyPct >= 5 ? C_WARN : C_OK, "%u%%", d.dutyPct);
-    pair(n, "rx", C_TEXT, "%lu", (unsigned long)d.rxPackets);
-    pair(n, "tx", C_TEXT, "%lu", (unsigned long)d.txPackets);
-    pair(n, "rx f/d", C_TEXT, "%lu/%lu", (unsigned long)d.rxFlood, (unsigned long)d.rxDirect);
-    pair(n, "tx f/d", C_TEXT, "%lu/%lu", (unsigned long)d.txFlood, (unsigned long)d.txDirect);
-    pair(n, "dups", d.dups ? C_WARN : C_TEXT, "%lu", (unsigned long)d.dups);
-    pair(n, "errors", d.rxErrors ? C_ERR : C_TEXT, "%lu", (unsigned long)d.rxErrors);
     char t1[12], t2[12];
-    fmtDur(t1, sizeof t1, d.airTxMs / 1000);
-    fmtDur(t2, sizeof t2, d.airRxMs / 1000);
-    pair(n, "air tx", C_TEXT, "%s", t1);
-    pair(n, "air rx", C_TEXT, "%s", t2);
-    pair(n, "queue", d.queueLen > 4 ? C_WARN : C_TEXT, "%u", d.queueLen);
-    pair(n, "app q", C_TEXT, "%u", d.offlineQueue);
-    model::Radio rd = a.m().radio();
-    DiagItem& line = _items[n++];
-    line = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, C_ACCENT};
-    snprintf(line.value, sizeof line.value, "%.3f/%g/SF%u/4:%u %ddBm", rd.freqMHz, rd.bwKHz, rd.sf, rd.cr, rd.txDbm);
-    _items[n++] = DiagItem{DiagItem::Break, "System", {}, 0, 0, 0, 0};
-    // System.
-    meter(n, "heap", (int)(d.heapFree / 1024), 0, 160, d.heapFree < 20000 ? C_ERR : d.heapFree < 40000 ? C_WARN : C_OK,
-          "%luK", (unsigned long)(d.heapFree / 1024));
-    meter(n, "min", (int)(d.heapMin / 1024), 0, 160, d.heapMin < 15000 ? C_ERR : d.heapMin < 30000 ? C_WARN : C_OK,
-          "%luK", (unsigned long)(d.heapMin / 1024));
-    meter(n, "block", (int)(d.heapMaxBlock / 1024), 0, 128, d.heapMaxBlock < 8000 ? C_ERR : C_OK, "%luK",
-          (unsigned long)(d.heapMaxBlock / 1024));
-    meter(n, "batt", d.battPct, 0, 100, d.charging ? C_OK : d.battPct <= 15 ? C_ERR : d.battPct <= 35 ? C_WARN : C_OK,
-          "%u.%02uV", d.battMv / 1000, d.battMv % 1000 / 10);
-    fmtDur(t1, sizeof t1, d.uptimeS);
-    pair(n, "uptime", C_TEXT, "%s", t1);
-    pair(n, "battery", C_TEXT, "%u%%%s", d.battPct, d.charging ? " chg" : "");
-    pair(n, "contacts", d.contacts * 10 >= d.contactsMax * 9 ? C_WARN : C_TEXT, "%u/%u", d.contacts, d.contactsMax);
-    pair(n, "channels", C_TEXT, "%u/%u", d.channels, d.channelsMax);
-    if (a.m().mode() == model::Mode::Remote) {
-      // The radio, counters and contacts above are the node's; heap and
-      // battery are this device's. The node's own battery:
-      model::Link l = a.m().link();
-      bool up = l.state == model::LinkState::Ready;
-      if (up) pair(n, "node", l.synced ? C_OK : C_ACCENT, "%u.%02uV %ddBm", l.nodeBattMv / 1000, l.nodeBattMv % 1000 / 10, l.rssi);
-      else pair(n, "node", C_WARN, "%s", l.saved ? "no link" : "none chosen");
-    } else {
-      pair(n, "ble", a.m().bleConnected() ? C_OK : C_TEXT, "%s",
-           a.m().bleAvailable() ? (a.m().bleConnected() ? "connected" : a.m().prefs().bleEnabled ? "on" : "off") : "none");
+    const uint8_t mask = app::diagPagesShown(a.m().prefs().diagPages);
+    if (mask & app::DIAG_RADIO) {
+      _items[n++] = DiagItem{DiagItem::Break, "Radio", {}, 0, 0, 0, 0};
+      meter(n, "noise", d.noiseFloor, -130, -80, d.noiseFloor > -95 ? C_ERR : d.noiseFloor > -110 ? C_WARN : C_OK,
+            "%d dBm", d.noiseFloor);
+      meter(n, "rssi", d.lastRssi, -130, -40, d.lastRssi > -100 ? C_OK : d.lastRssi > -115 ? C_WARN : C_ERR, "%d dBm",
+            d.lastRssi);
+      meter(n, "snr", d.lastSnr_x4, -20 * 4, 12 * 4, snrColor(d.lastSnr_x4), "%s dB", snr);
+      meter(n, "duty", d.dutyPct, 0, 10, d.dutyPct >= 10 ? C_ERR : d.dutyPct >= 5 ? C_WARN : C_OK, "%u%%", d.dutyPct);
+      pair(n, "rx", C_TEXT, "%lu", (unsigned long)d.rxPackets);
+      pair(n, "tx", C_TEXT, "%lu", (unsigned long)d.txPackets);
+      pair(n, "rx f/d", C_TEXT, "%lu/%lu", (unsigned long)d.rxFlood, (unsigned long)d.rxDirect);
+      pair(n, "tx f/d", C_TEXT, "%lu/%lu", (unsigned long)d.txFlood, (unsigned long)d.txDirect);
+      pair(n, "dups", d.dups ? C_WARN : C_TEXT, "%lu", (unsigned long)d.dups);
+      pair(n, "errors", d.rxErrors ? C_ERR : C_TEXT, "%lu", (unsigned long)d.rxErrors);
+      fmtDur(t1, sizeof t1, d.airTxMs / 1000);
+      fmtDur(t2, sizeof t2, d.airRxMs / 1000);
+      pair(n, "air tx", C_TEXT, "%s", t1);
+      pair(n, "air rx", C_TEXT, "%s", t2);
+      pair(n, "queue", d.queueLen > 4 ? C_WARN : C_TEXT, "%u", d.queueLen);
+      pair(n, "app q", C_TEXT, "%u", d.offlineQueue);
+      model::Radio rd = a.m().radio();
+      DiagItem& line = _items[n++];
+      line = DiagItem{DiagItem::Line, "", {}, 0, 0, 0, C_ACCENT};
+      snprintf(line.value, sizeof line.value, "%.3f/%g/SF%u/4:%u %ddBm", rd.freqMHz, rd.bwKHz, rd.sf, rd.cr, rd.txDbm);
     }
-    uint8_t k[6];
-    a.m().selfKey(k);
-    pair(n, "node id", C_ACCENT, "%02X%02X%02X%02X", k[0], k[1], k[2], k[3]);
+    if (mask & app::DIAG_SYSTEM) {
+      _items[n++] = DiagItem{DiagItem::Break, "System", {}, 0, 0, 0, 0};
+      meter(n, "heap", (int)(d.heapFree / 1024), 0, 160, d.heapFree < 20000 ? C_ERR : d.heapFree < 40000 ? C_WARN : C_OK,
+            "%luK", (unsigned long)(d.heapFree / 1024));
+      meter(n, "min", (int)(d.heapMin / 1024), 0, 160, d.heapMin < 15000 ? C_ERR : d.heapMin < 30000 ? C_WARN : C_OK,
+            "%luK", (unsigned long)(d.heapMin / 1024));
+      meter(n, "block", (int)(d.heapMaxBlock / 1024), 0, 128, d.heapMaxBlock < 8000 ? C_ERR : C_OK, "%luK",
+            (unsigned long)(d.heapMaxBlock / 1024));
+      meter(n, "batt", d.battPct, 0, 100, d.charging ? C_OK : d.battPct <= 15 ? C_ERR : d.battPct <= 35 ? C_WARN : C_OK,
+            "%u.%02uV", d.battMv / 1000, d.battMv % 1000 / 10);
+      fmtDur(t1, sizeof t1, d.uptimeS);
+      pair(n, "uptime", C_TEXT, "%s", t1);
+      pair(n, "battery", C_TEXT, "%u%%%s", d.battPct, d.charging ? " chg" : "");
+      pair(n, "contacts", d.contacts * 10 >= d.contactsMax * 9 ? C_WARN : C_TEXT, "%u/%u", d.contacts, d.contactsMax);
+      pair(n, "channels", C_TEXT, "%u/%u", d.channels, d.channelsMax);
+      if (a.m().mode() == model::Mode::Remote) {
+        // The radio, counters and contacts above are the node's; heap and
+        // battery are this device's. The node's own battery:
+        model::Link l = a.m().link();
+        bool up = l.state == model::LinkState::Ready;
+        if (up) pair(n, "node", l.synced ? C_OK : C_ACCENT, "%u.%02uV %ddBm", l.nodeBattMv / 1000, l.nodeBattMv % 1000 / 10, l.rssi);
+        else pair(n, "node", C_WARN, "%s", l.saved ? "no link" : "none chosen");
+      } else {
+        pair(n, "ble", a.m().bleConnected() ? C_OK : C_TEXT, "%s",
+             a.m().bleAvailable() ? (a.m().bleConnected() ? "connected" : a.m().prefs().bleEnabled ? "on" : "off") : "none");
+      }
+      uint8_t k[6];
+      a.m().selfKey(k);
+      pair(n, "node id", C_ACCENT, "%02X%02X%02X%02X", k[0], k[1], k[2], k[3]);
+    }
+    if (mask & app::DIAG_POWER) power(n, a, d.power);
 #ifdef MC_BOARD_TDECK
-    storage(n, d);
+    if (mask & app::DIAG_STORAGE) storage(n, d);
+    if (mask & app::DIAG_BLUETOOTH) bluetooth(n, a, d.power);
 #endif
-#ifdef MC_BOARD_TDECK
-    bluetooth(n, a, d.power);
-#endif
-    power(n, a, d.power);
     return n;
   }
 
 #ifdef MC_BOARD_TDECK
-  // The phone link: whether Bluetooth is on, and how the phones' connections have gone since boot,
-  // for finding why a paired phone is sometimes not let back in.
+  // The phone link: whether Bluetooth is on, and how the phones' connections have gone since boot.
   void bluetooth(int& n, App& a, const model::Power& p) {
     _items[n++] = DiagItem{DiagItem::Break, "Bluetooth", {}, 0, 0, 0, 0};
     bool remote = a.m().mode() == model::Mode::Remote;
@@ -252,6 +253,7 @@ private:
     if (p.bleBonds < 0) return;
     line(n, C_TEXT, "Bonds       %d", p.bleBonds);
     line(n, C_TEXT, "Phone       %u conn  %u ok  %u fail", p.bleConnects, p.bleAuthOk, p.bleAuthFail);
+    // The last few connections: B known / n new to the stack, then + paired, - failed, ? dropped.
     if (p.bleHist[0] || p.bleHist[2] || p.bleHist[4] || p.bleHist[6]) {
       char h[16] = {};
       for (int i = 0; i < 4; i++) {
@@ -260,26 +262,14 @@ private:
         h[i * 3 + 2] = i < 3 ? ' ' : 0;
       }
       line(n, C_TEXT, "Recent      %s", h);
-      line(n, C_DIM, "B/n known/new, then + paired - failed ? dropped");
+      line(n, C_DIM, "B/n known/new, + paired - failed ? dropped");
     }
-    static const char* const kWhen[3] = {"off ", "on  ", "now "};
-    for (int k = 0; k < 3; k++) {
-      if (!p.bleRec[k][0][0] && k < 2) continue;
-      line(n, k == 2 ? C_TEXT : C_DIM, "%s%s", kWhen[k], p.bleRec[k][0]);
-      line(n, k == 2 ? C_TEXT : C_DIM, "    %s", p.bleRec[k][1]);
-    }
-    if (p.bleAuthFail)
-      line(n, C_WARN, "Last fail   enc %d  auth %d  bond %d", p.bleFailEnc, p.bleFailAuth, p.bleFailBond);
-    if (p.bleConnects)
-      line(n, p.blePeerBonded ? C_OK : C_WARN, "Last        addr %u/%u  %s", p.blePeerOta, p.blePeerId,
-           p.blePeerBonded ? "known" : "not bonded");
   }
 #endif
 
   // What the handheld's power management has done since the counters were reset.
   void power(int& n, App& a, const model::Power& p) {
     _items[n++] = DiagItem{DiagItem::Break, "Power", {}, 0, 0, 0, 0};
-    _powerItem = n;
     char t[12], u[12];
     fmtDur(t, sizeof t, p.sinceS);
     line(n, C_TEXT, "Since reset %s", t);
@@ -369,8 +359,6 @@ private:
   DiagItem _items[40];   // 37 used
 #endif
   int _page = 0, _pages = 1;
-  int _powerItem = 0;               // the first Power item, and the page it lands on
-  int _powerPage = 1 << 20;
   uint32_t _last = 0;
   char _title[40];
   char _names[16][14];   // each page's section

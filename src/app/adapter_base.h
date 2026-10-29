@@ -43,6 +43,8 @@ struct UiPrefs {
   uint8_t clock12;               // 1: times as 1:28 PM
   uint8_t lockSet;               // 1: lockOff has been decided (a file without it predates the Cardputer's lock)
   uint8_t cpuSpeed;              // 0: the board's own speed (also files from before), 1: balanced, 2: battery saver
+  uint8_t diagPages;             // bit per Diagnostics page shown (app/diag_pages.h)
+  uint8_t diagSet;               // 1: diagPages has been decided (a file without it predates the choice)
 };
 
 // The mode the device boots in, from the UI prefs on flash (before any

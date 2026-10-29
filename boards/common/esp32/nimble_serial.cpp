@@ -79,7 +79,6 @@ void NimbleSerialInterface::build() {
 // Stops the controller and frees the host's memory, so that nothing of Bluetooth runs while it is off.
 void NimbleSerialInterface::teardown() {
   if (!_stacked) return;
-  PROBE(bleRecordNow(bleLastPeer.rec[0]);)
   NimBLEDevice::getAdvertising()->stop();
   for (uint16_t h : _server->getPeerDevices()) _server->disconnect(h);
   // The disconnect completes on the host task; give it a moment.
@@ -96,45 +95,10 @@ void NimbleSerialInterface::teardown() {
 
 BleLastPeer bleLastPeer;
 
-#ifdef MC_BOARD_TDECK
-struct SecSum {
-  int n = 0;
-  uint8_t type = 0, ks = 0, lx = 0, ix = 0;
-  bool l = false, i = false, a = false, sc = false;
-};
-
-static int secCb(int, union ble_store_value* v, void* cookie) {
-  SecSum* o = (SecSum*)cookie;
-  if (o->n++ == 0) {
-    const ble_store_value_sec& s = v->sec;
-    o->type = s.peer_addr.type;
-    o->ks = s.key_size;
-    o->l = s.ltk_present;
-    o->i = s.irk_present;
-    o->a = s.authenticated;
-    o->sc = s.sc;
-    for (int k = 0; k < 16; k++) { o->lx ^= s.ltk[k]; o->ix ^= s.irk[k]; }
-  }
-  return 0;
-}
-
-void bleRecordNow(char out[2][40]) {
-  SecSum p, o;
-  ble_store_iterate(BLE_STORE_OBJ_TYPE_PEER_SEC, secCb, &p);
-  ble_store_iterate(BLE_STORE_OBJ_TYPE_OUR_SEC, secCb, &o);
-  if (!p.n) snprintf(out[0], 40, "phone: none");
-  else snprintf(out[0], 40, "phone x%d t%u L%u I%u A%u S%u k%u %02X.%02X", p.n, p.type, p.l, p.i, p.a, p.sc, p.ks, p.lx, p.ix);
-  if (!o.n) snprintf(out[1], 40, "ours: none");
-  else snprintf(out[1], 40, "ours x%d L%u A%u S%u k%u %02X", o.n, o.l, o.a, o.sc, o.ks, o.lx);
-}
-#endif
 
 void NimbleSerialInterface::onConnect(NimBLEServer*, ble_gap_conn_desc* desc) {
   PROBE(bleLastPeer.connects++;)
-  PROBE(bleLastPeer.otaType = desc->peer_ota_addr.type;)
-  PROBE(bleLastPeer.idType = desc->peer_id_addr.type;)
-  PROBE(bleLastPeer.bonded = NimBLEDevice::isBonded(NimBLEAddress(desc->peer_id_addr));)
-  PROBE(bleLastPeer.connected(bleLastPeer.bonded);)
+  PROBE(bleLastPeer.connected(NimBLEDevice::isBonded(NimBLEAddress(desc->peer_id_addr)));)
   _conn = desc->conn_handle;
   _linkedAt = millis();
   _linked = true;
@@ -153,8 +117,6 @@ void NimbleSerialInterface::onAuthenticationComplete(ble_gap_conn_desc* desc) {
     _authed = true;
   } else {
     PROBE(bleLastPeer.authFail++;)
-    PROBE(bleLastPeer.failEnc = desc->sec_state.encrypted; bleLastPeer.failAuth = desc->sec_state.authenticated;
-          bleLastPeer.failBond = desc->sec_state.bonded;)
     PROBE(bleLastPeer.ended(false);)
     _linked = false;
     _server->disconnect(desc->conn_handle);
@@ -181,10 +143,7 @@ void NimbleSerialInterface::enable() {
   if (_enabled) return;
   _enabled = true;
   clearBuffers();
-  if (!_stacked) {
-    build();
-    PROBE(bleRecordNow(bleLastPeer.rec[1]);)
-  }
+  if (!_stacked) build();
   NimBLEDevice::getAdvertising()->start();
   _advRestartAt = 0;
 }

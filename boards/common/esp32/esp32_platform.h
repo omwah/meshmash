@@ -21,7 +21,17 @@ public:
   uint32_t lowClockSeconds() override { return lowClockSecondsFn ? lowClockSecondsFn() : 0; }
   uint32_t (*lowClockSecondsFn)() = nullptr;
   model::Power power() override;
-  void resetPower() override { stats.reset(millis()); }
+  void resetPower() override {
+    stats.reset(millis());
+    _sleepMs = 0;
+    _wakes = 0;
+  }
+  // Light sleep, for the Power page: this build can do it, and what it has done (`block` is why the
+  // last pass did not sleep, with the screen off).
+  void sleepEnabled() { _sleepKnown = true; }
+  void noteSleep(uint32_t ms) { _sleepMs += ms; _wakes++; }
+  void noteBlock(const char* why) { snprintf(_block, sizeof _block, "%s", why); }
+  bool usbHost();   // a computer is attached to the USB port
   // Call once per loop pass: counts screen-off time and takes a rested battery reading when one
   // is due. `txCount` is the radio's packets sent so far, `audioBusy` a sound playing.
   void powerTick(bool screenOff, uint32_t txCount, bool audioBusy);
@@ -38,4 +48,7 @@ private:
   bool _sdTried = false, _sdOk = false;
   uint32_t _sdCheckAt = 0;
   uint32_t _txCount = 0, _txAt = 0;
+  bool _sleepKnown = false;
+  uint32_t _sleepMs = 0, _wakes = 0;
+  char _block[16] = {};
 };

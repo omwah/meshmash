@@ -18,6 +18,10 @@ struct BleLastPeer {
   // The last few connections, two characters each: B known / n not bonded at connect, then how the
   // pairing ended: + encrypted, - failed, ? nothing (it dropped first). Oldest first.
   volatile bool failEnc = false, failAuth = false, failBond = false;   // the last failed pairing: which of the three it had
+  // The stored pairing record as summarised at three moments: just before Bluetooth is switched
+  // off, just after it is on again, and now. Two lines each (the phone's, then ours); the keys
+  // are shown only as one folded byte, enough to see whether they changed.
+  char rec[3][2][40] = {};
   static constexpr int HIST = 4;
   char hist[HIST][2] = {};
   void connected(bool known) {
@@ -27,6 +31,8 @@ struct BleLastPeer {
   }
   void ended(bool ok) { if (hist[HIST - 1][0]) hist[HIST - 1][1] = ok ? '+' : '-'; }};
 extern BleLastPeer bleLastPeer;
+// Fills `out` (two lines) from the pairing store as it is now.
+void bleRecordNow(char out[2][40]);
 
 class NimbleSerialInterface : public BaseSerialInterface,
                               NimBLEServerCallbacks,
@@ -63,6 +69,7 @@ private:
 
   void clearBuffers();
   void build();
+  void teardown();
 
   struct Frame {
     uint8_t len;
@@ -80,6 +87,8 @@ private:
   volatile bool _linked = false, _authed = false;
   volatile uint16_t _conn = 0xFFFF;
   volatile uint32_t _linkedAt = 0;
+  bool _restarted = false;   // the stack has been stopped once in this boot
+  bool _stacked = false;   // the NimBLE host and controller are running
   static constexpr uint32_t kPairingShowMs = 1000;
   bool _wasAuthed = false;
   unsigned long _lastWrite = 0, _advRestartAt = 0;

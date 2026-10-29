@@ -25,7 +25,9 @@ BUDGETS = {
     # +3 KB (2026-10-25): the thread graph (scoring, components, weak links) is shared code.
     # +6 KB flash, +1 KB RAM (2026-10-26): battery and sleep work: the Power diagnostics page, the Bluetooth
     # switch on the main menu, G0 lock and unlock, the timed notification wake and the CPU speed setting.
-    "cardputer_adv": (1_036_000, 121_000),       # stock BLE companion is ~1.25 MB
+    # +2 KB (2026-10-29): the Bluetooth controller stops and starts with the switch, with the IRK/resolving-list
+    # repair a restart needs (docs/POWER-PLAN.md, Phase 5a).
+    "cardputer_adv": (1_038_000, 121_000),       # stock BLE companion is ~1.25 MB
     # +2 KB (2026-10-25): chat drafts, the message info and thread screens, history reads.
     # +4 KB (2026-10-26): the same battery and sleep work.
     "cardputer_adv_usb": (775_000, 109_000),     # MeshCore 1.18 adds dynamic prefs/CLI (~7 KB over old cap)

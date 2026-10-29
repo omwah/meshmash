@@ -262,6 +262,12 @@ private:
       line(n, C_TEXT, "Recent      %s", h);
       line(n, C_DIM, "B/n known/new, then + paired - failed ? dropped");
     }
+    static const char* const kWhen[3] = {"off ", "on  ", "now "};
+    for (int k = 0; k < 3; k++) {
+      if (!p.bleRec[k][0][0] && k < 2) continue;
+      line(n, k == 2 ? C_TEXT : C_DIM, "%s%s", kWhen[k], p.bleRec[k][0]);
+      line(n, k == 2 ? C_TEXT : C_DIM, "    %s", p.bleRec[k][1]);
+    }
     if (p.bleAuthFail)
       line(n, C_WARN, "Last fail   enc %d  auth %d  bond %d", p.bleFailEnc, p.bleFailAuth, p.bleFailBond);
     if (p.bleConnects)

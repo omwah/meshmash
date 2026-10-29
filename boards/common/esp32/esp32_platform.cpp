@@ -113,6 +113,8 @@ model::Power Esp32Platform::power() {
   p.blePeerOta = bleLastPeer.otaType;
   p.blePeerId = bleLastPeer.idType;
   p.blePeerBonded = bleLastPeer.bonded;
+  memcpy(p.bleRec, bleLastPeer.rec, sizeof p.bleRec);
+  bleRecordNow(p.bleRec[2]);
   p.bleFailEnc = bleLastPeer.failEnc;
   p.bleFailAuth = bleLastPeer.failAuth;
   p.bleFailBond = bleLastPeer.failBond;

@@ -120,6 +120,7 @@ struct Power {
   bool charging;                        // the trend is paused: a host is attached or the voltage is rising
   bool rateKnown;
   int16_t mvPerHour;                    // change in rested voltage per hour (negative: draining)
+  uint16_t nvsUsed = 0, nvsTotal = 0;   // entries in the flash settings store (0: unknown); bonds are written there
   int8_t bleBonds = -1;                    // phones paired with the Bluetooth stack (-1: none built); finding why a toggle loses the pairing
 };
 

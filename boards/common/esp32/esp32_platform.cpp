@@ -1,6 +1,7 @@
 #include "esp32_platform.h"
 #include <Arduino.h>
 #include <esp_heap_caps.h>
+#include <nvs.h>
 #if defined(BLE_PIN_CODE)
 #include <NimBLEDevice.h>
 #endif
@@ -68,6 +69,11 @@ model::Power Esp32Platform::power() {
   model::Power p = stats.snapshot(millis());
   p.cpuMhz = cpuMhz();
   p.lowClockS = lowClockSeconds();
+  nvs_stats_t ns;
+  if (nvs_get_stats(nullptr, &ns) == ESP_OK) {
+    p.nvsUsed = (uint16_t)ns.used_entries;
+    p.nvsTotal = (uint16_t)ns.total_entries;
+  }
 #if defined(BLE_PIN_CODE)
   p.bleBonds = (int8_t)NimBLEDevice::getNumBonds();
 #endif

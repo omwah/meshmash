@@ -293,6 +293,11 @@ private:
       meter(n, "flash", (int)d.flashUsedKb, 0, (int)d.flashTotalKb,
             d.flashUsedKb * 10 >= d.flashTotalKb * 9 ? C_ERR : d.flashUsedKb * 4 >= d.flashTotalKb * 3 ? C_WARN : C_OK,
             "%lu/%luK", (unsigned long)d.flashUsedKb, (unsigned long)d.flashTotalKb);
+    // The settings store the Bluetooth pairings are written to: full, they are not kept.
+    if (d.power.nvsTotal)
+      meter(n, "nvs", d.power.nvsUsed, 0, d.power.nvsTotal,
+            d.power.nvsUsed * 10 >= d.power.nvsTotal * 9 ? C_ERR : d.power.nvsUsed * 4 >= d.power.nvsTotal * 3 ? C_WARN : C_OK,
+            "%u/%u", d.power.nvsUsed, d.power.nvsTotal);
     if (d.sdTotalKb)
       meter(n, "sd", (int)(d.sdUsedKb / 1024), 0, (int)(d.sdTotalKb / 1024), C_OK, "%lu/%luM",
             (unsigned long)(d.sdUsedKb / 1024), (unsigned long)(d.sdTotalKb / 1024));
@@ -320,7 +325,7 @@ private:
 #endif
 
 #ifdef MC_BOARD_TDECK
-  DiagItem _items[56];   // 49 used
+  DiagItem _items[56];   // 50 used
 #else
   DiagItem _items[40];   // 37 used
 #endif

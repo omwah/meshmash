@@ -37,8 +37,10 @@ public:
   // As SerialBLEInterface::begin: name "@@MAC" is replaced by the MAC (IN/OUT).
   void begin(const char* prefix, char* name, uint32_t pin_code);
 
-  // A phone is connected but has not finished pairing (the UI shows the PIN).
-  bool pairing() const { return _linked && !_authed; }
+  // A phone is connected but has not finished pairing (the UI shows the PIN). A phone that is
+  // bonded finishes in a moment without asking for anything, so only a link still open after
+  // kPairingShowMs counts.
+  bool pairing() const { return _linked && !_authed && millis() - _linkedAt >= kPairingShowMs; }
 
   // BaseSerialInterface
   void enable() override;
@@ -61,7 +63,6 @@ private:
 
   void clearBuffers();
   void build();
-  void teardown();
 
   struct Frame {
     uint8_t len;
@@ -74,11 +75,12 @@ private:
   NimBLECharacteristic* _tx = nullptr;
   uint32_t _pin = 0;
   bool _enabled = false;
-  bool _stacked = false;   // the NimBLE host and controller are running
   char _devName[48] = {};
   // Written from NimBLE's host task, read from loop().
   volatile bool _linked = false, _authed = false;
   volatile uint16_t _conn = 0xFFFF;
+  volatile uint32_t _linkedAt = 0;
+  static constexpr uint32_t kPairingShowMs = 1000;
   bool _wasAuthed = false;
   unsigned long _lastWrite = 0, _advRestartAt = 0;
 

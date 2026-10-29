@@ -27,8 +27,8 @@ void NimbleSerialInterface::begin(const char* prefix, char* name, uint32_t pin_c
   build();
 }
 
-// Starts the NimBLE host and controller and publishes the service: at boot, and again each time
-// Bluetooth is switched back on.
+// Starts the NimBLE host and controller and publishes the service, once at boot. Bluetooth off
+// does not stop them again: that lost phones' pairings (docs/POWER-PLAN.md, Phase 5a).
 void NimbleSerialInterface::build() {
   NimBLEDevice::init(_devName);
   // Room for a whole frame in one notify (the ATT header takes 3 bytes).
@@ -50,22 +50,6 @@ void NimbleSerialInterface::build() {
   rx->setCallbacks(this);
   _service->start();
   NimBLEDevice::getAdvertising()->addServiceUUID(SERVICE_UUID);
-  _stacked = true;
-}
-
-// Stops the controller and frees the host's memory, so that nothing of Bluetooth runs (or can
-// keep the chip from sleeping) while it is off.
-void NimbleSerialInterface::teardown() {
-  if (!_stacked) return;
-  NimBLEDevice::getAdvertising()->stop();
-  for (uint16_t h : _server->getPeerDevices()) _server->disconnect(h);
-  // The disconnect completes on the host task; give it a moment.
-  for (int i = 0; i < 50 && _server->getConnectedCount(); i++) delay(10);
-  NimBLEDevice::deinit(true);
-  _server = nullptr;
-  _service = nullptr;
-  _tx = nullptr;
-  _stacked = false;
 }
 
 // ---- NimBLE callbacks (host task)
@@ -84,6 +68,7 @@ void NimbleSerialInterface::onConnect(NimBLEServer*, ble_gap_conn_desc* desc) {
   PROBE(bleLastPeer.bonded = NimBLEDevice::isBonded(NimBLEAddress(desc->peer_id_addr));)
   PROBE(bleLastPeer.connected(bleLastPeer.bonded);)
   _conn = desc->conn_handle;
+  _linkedAt = millis();
   _linked = true;
   _authed = false;
 }
@@ -128,21 +113,23 @@ void NimbleSerialInterface::enable() {
   if (_enabled) return;
   _enabled = true;
   clearBuffers();
-  if (!_stacked) build();
   NimBLEDevice::getAdvertising()->start();
   _advRestartAt = 0;
 }
 
 void NimbleSerialInterface::disable() {
   _enabled = false;
-  teardown();
+  // Stops advertising and lets go of the phone, but keeps the NimBLE stack up: stopping and
+  // starting it again lost the phones' pairings in practice (see docs/POWER-PLAN.md, Phase 5a).
+  NimBLEDevice::getAdvertising()->stop();
+  for (uint16_t h : _server->getPeerDevices()) _server->disconnect(h);
   _linked = _authed = _wasAuthed = false;
   _conn = 0xFFFF;
   _advRestartAt = 0;
 }
 
 size_t NimbleSerialInterface::writeFrame(const uint8_t src[], size_t len) {
-  if (!_stacked || len == 0 || len > MAX_FRAME_SIZE || !_authed || _txLen >= QUEUE) return 0;
+  if (len == 0 || len > MAX_FRAME_SIZE || !_authed || _txLen >= QUEUE) return 0;
   _txq[_txLen].len = len;
   memcpy(_txq[_txLen].buf, src, len);
   _txLen++;
@@ -154,7 +141,6 @@ bool NimbleSerialInterface::isWriteBusy() const {
 }
 
 size_t NimbleSerialInterface::checkRecvFrame(uint8_t dest[]) {
-  if (!_stacked) return 0;
   unsigned long now = millis();
   if (_txLen > 0 && now >= _lastWrite + WRITE_MIN_INTERVAL) {
     _lastWrite = now;

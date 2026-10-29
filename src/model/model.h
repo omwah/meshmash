@@ -124,6 +124,8 @@ struct Power {
   uint8_t bleConnects = 0, bleAuthOk = 0, bleAuthFail = 0;   // phone connections since boot, and how their pairing ended
   uint8_t blePeerOta = 0xFF, blePeerId = 0xFF;                // address types of the last phone (0 public, 1 random)
   bool blePeerBonded = false;
+  bool bleFailEnc = false, bleFailAuth = false, bleFailBond = false;   // what the last failed pairing had
+  char bleHist[9] = {};                                       // last connections, two characters each (see BleLastPeer)
   int8_t bleBonds = -1;                    // phones paired with the Bluetooth stack (-1: none built); finding why a toggle loses the pairing
 };
 

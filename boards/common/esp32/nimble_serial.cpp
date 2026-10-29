@@ -70,13 +70,19 @@ void NimbleSerialInterface::teardown() {
 
 // ---- NimBLE callbacks (host task)
 
+#ifdef MC_BOARD_TDECK   // pairing probes (see docs/POWER-PLAN.md), until that bug is found
+#define PROBE(x) x
+#else
+#define PROBE(x)
+#endif
 BleLastPeer bleLastPeer;
 
 void NimbleSerialInterface::onConnect(NimBLEServer*, ble_gap_conn_desc* desc) {
-  bleLastPeer.connects++;
-  bleLastPeer.otaType = desc->peer_ota_addr.type;
-  bleLastPeer.idType = desc->peer_id_addr.type;
-  bleLastPeer.bonded = NimBLEDevice::isBonded(NimBLEAddress(desc->peer_id_addr));
+  PROBE(bleLastPeer.connects++;)
+  PROBE(bleLastPeer.otaType = desc->peer_ota_addr.type;)
+  PROBE(bleLastPeer.idType = desc->peer_id_addr.type;)
+  PROBE(bleLastPeer.bonded = NimBLEDevice::isBonded(NimBLEAddress(desc->peer_id_addr));)
+  PROBE(bleLastPeer.connected(bleLastPeer.bonded);)
   _conn = desc->conn_handle;
   _linked = true;
   _authed = false;
@@ -89,10 +95,14 @@ void NimbleSerialInterface::onDisconnect(NimBLEServer*, ble_gap_conn_desc*) {
 
 void NimbleSerialInterface::onAuthenticationComplete(ble_gap_conn_desc* desc) {
   if (desc->sec_state.encrypted && desc->sec_state.authenticated) {
-    bleLastPeer.authOk++;
+    PROBE(bleLastPeer.authOk++;)
+    PROBE(bleLastPeer.ended(true);)
     _authed = true;
   } else {
-    bleLastPeer.authFail++;
+    PROBE(bleLastPeer.authFail++;)
+    PROBE(bleLastPeer.failEnc = desc->sec_state.encrypted; bleLastPeer.failAuth = desc->sec_state.authenticated;
+          bleLastPeer.failBond = desc->sec_state.bonded;)
+    PROBE(bleLastPeer.ended(false);)
     _linked = false;
     _server->disconnect(desc->conn_handle);
   }

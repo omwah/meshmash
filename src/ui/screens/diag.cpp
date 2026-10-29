@@ -59,8 +59,8 @@ public:
 
     // Lay items into rows, then rows into pages.
     struct Cell { int item, col; };
-    static Cell cells[64];
-    static int rowOf[64];
+    static Cell cells[80];
+    static int rowOf[80];
     int row = 0, colAt = 0, nc = 0;
     int pageStart[16] = {0}, pages = 1;
     // Each page is named for its section; one that runs over says so ("Radio (2)").
@@ -71,7 +71,7 @@ public:
       else snprintf(_names[p], sizeof _names[p], "%s", sec);
     };
     name(0);
-    for (int i = 0; i < n && nc < 64; i++) {
+    for (int i = 0; i < n && nc < 80; i++) {
       const DiagItem& it = _items[i];
       if (it.kind == DiagItem::Break) {
         if (colAt) { row++; colAt = 0; }
@@ -232,9 +232,43 @@ private:
 #ifdef MC_BOARD_TDECK
     storage(n, d);
 #endif
+#ifdef MC_BOARD_TDECK
+    bluetooth(n, a, d.power);
+#endif
     power(n, a, d.power);
     return n;
   }
+
+#ifdef MC_BOARD_TDECK
+  // The phone link: whether Bluetooth is on, and how the phones' connections have gone since boot,
+  // for finding why a paired phone is sometimes not let back in.
+  void bluetooth(int& n, App& a, const model::Power& p) {
+    _items[n++] = DiagItem{DiagItem::Break, "Bluetooth", {}, 0, 0, 0, 0};
+    bool remote = a.m().mode() == model::Mode::Remote;
+    if (!a.m().bleAvailable()) line(n, C_DIM, "Power       n/a");
+    else if (remote) line(n, C_ACCENT, "Power       node link");
+    else if (!a.m().prefs().bleEnabled) line(n, C_DIM, "Power       off");
+    else line(n, a.m().bleConnected() ? C_OK : C_ACCENT, "Power       %s", a.m().bleConnected() ? "on, connected" : "on");
+    if (p.bleBonds < 0) return;
+    line(n, C_TEXT, "Bonds       %d", p.bleBonds);
+    line(n, C_TEXT, "Phone       %u conn  %u ok  %u fail", p.bleConnects, p.bleAuthOk, p.bleAuthFail);
+    if (p.bleHist[0] || p.bleHist[2] || p.bleHist[4] || p.bleHist[6]) {
+      char h[16] = {};
+      for (int i = 0; i < 4; i++) {
+        h[i * 3] = p.bleHist[i * 2] ? p.bleHist[i * 2] : '-';
+        h[i * 3 + 1] = p.bleHist[i * 2 + 1] ? p.bleHist[i * 2 + 1] : '-';
+        h[i * 3 + 2] = i < 3 ? ' ' : 0;
+      }
+      line(n, C_TEXT, "Recent      %s", h);
+      line(n, C_DIM, "B/n known/new, then + paired - failed ? dropped");
+    }
+    if (p.bleAuthFail)
+      line(n, C_WARN, "Last fail   enc %d  auth %d  bond %d", p.bleFailEnc, p.bleFailAuth, p.bleFailBond);
+    if (p.bleConnects)
+      line(n, p.blePeerBonded ? C_OK : C_WARN, "Last        addr %u/%u  %s", p.blePeerOta, p.blePeerId,
+           p.blePeerBonded ? "known" : "not bonded");
+  }
+#endif
 
   // What the handheld's power management has done since the counters were reset.
   void power(int& n, App& a, const model::Power& p) {
@@ -250,15 +284,6 @@ private:
       else if (remote) line(n, C_ACCENT, "Bluetooth   node link");
       else if (!pr.bleEnabled) line(n, C_DIM, "Bluetooth   off");
       else line(n, a.m().bleConnected() ? C_OK : C_ACCENT, "Bluetooth   %s", a.m().bleConnected() ? "connected" : "on");
-#ifdef MC_BOARD_TDECK
-      if (p.bleBonds >= 0) {
-        line(n, C_TEXT, "Bonds       %d", p.bleBonds);
-        line(n, C_TEXT, "Phone       %u conn  %u ok  %u fail", p.bleConnects, p.bleAuthOk, p.bleAuthFail);
-        if (p.bleConnects)
-          line(n, p.blePeerBonded ? C_OK : C_WARN, "Last        addr %u/%u  %s", p.blePeerOta, p.blePeerId,
-               p.blePeerBonded ? "known" : "not bonded");
-      }
-#endif
       model::Gps g = a.m().gps();
       line(n, !g.enabled ? C_DIM : g.fix ? C_OK : C_WARN, "GPS         %s", !g.enabled ? "off" : g.fix ? "fix" : "searching");
     }
@@ -333,7 +358,7 @@ private:
 #endif
 
 #ifdef MC_BOARD_TDECK
-  DiagItem _items[56];   // 50 used
+  DiagItem _items[72];   // 56 used
 #else
   DiagItem _items[40];   // 37 used
 #endif

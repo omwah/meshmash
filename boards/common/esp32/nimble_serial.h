@@ -15,7 +15,17 @@ struct BleLastPeer {
   volatile uint8_t connects = 0, authOk = 0, authFail = 0;
   volatile uint8_t otaType = 0xFF, idType = 0xFF;   // address types the phone used / is bonded under
   volatile bool bonded = false;                     // the stack knew the phone by its identity address
-};
+  // The last few connections, two characters each: B known / n not bonded at connect, then how the
+  // pairing ended: + encrypted, - failed, ? nothing (it dropped first). Oldest first.
+  volatile bool failEnc = false, failAuth = false, failBond = false;   // the last failed pairing: which of the three it had
+  static constexpr int HIST = 4;
+  char hist[HIST][2] = {};
+  void connected(bool known) {
+    for (int i = 0; i + 1 < HIST; i++) { hist[i][0] = hist[i + 1][0]; hist[i][1] = hist[i + 1][1]; }
+    hist[HIST - 1][0] = known ? 'B' : 'n';
+    hist[HIST - 1][1] = '?';
+  }
+  void ended(bool ok) { if (hist[HIST - 1][0]) hist[HIST - 1][1] = ok ? '+' : '-'; }};
 extern BleLastPeer bleLastPeer;
 
 class NimbleSerialInterface : public BaseSerialInterface,

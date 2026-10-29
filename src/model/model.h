@@ -121,6 +121,9 @@ struct Power {
   bool rateKnown;
   int16_t mvPerHour;                    // change in rested voltage per hour (negative: draining)
   uint16_t nvsUsed = 0, nvsTotal = 0;   // entries in the flash settings store (0: unknown); bonds are written there
+  uint8_t bleConnects = 0, bleAuthOk = 0, bleAuthFail = 0;   // phone connections since boot, and how their pairing ended
+  uint8_t blePeerOta = 0xFF, blePeerId = 0xFF;                // address types of the last phone (0 public, 1 random)
+  bool blePeerBonded = false;
   int8_t bleBonds = -1;                    // phones paired with the Bluetooth stack (-1: none built); finding why a toggle loses the pairing
 };
 

@@ -9,6 +9,15 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
+// What the last phone connection looked like, for the Power page: finding why a bonded phone
+// does not get back in. Written from NimBLE's host task.
+struct BleLastPeer {
+  volatile uint8_t connects = 0, authOk = 0, authFail = 0;
+  volatile uint8_t otaType = 0xFF, idType = 0xFF;   // address types the phone used / is bonded under
+  volatile bool bonded = false;                     // the stack knew the phone by its identity address
+};
+extern BleLastPeer bleLastPeer;
+
 class NimbleSerialInterface : public BaseSerialInterface,
                               NimBLEServerCallbacks,
                               NimBLECharacteristicCallbacks {

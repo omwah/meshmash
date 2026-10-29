@@ -194,6 +194,9 @@ void loop() {
   if (adapter.gpsWanted()) sensors.loop();   // screen off: only for the clock and position sharing
   adapter.loop();
   applyBoardPrefs();
+#if defined(BLE_PIN_CODE)
+  idle.setHold(ble_interface.pairing());   // before the UI, which wakes the screen for a pairing
+#endif
   uint32_t uiWait = ui_app->loop(millis());
   platform.powerTick(ui_app->asleep(), radio_driver.getPacketsSent(), sound.busy());
   rtc_clock.tick();

@@ -9,6 +9,7 @@ public:
   void begin() { _clock.begin(); }
   void setIdle(bool idle) override { _clock.setIdle(idle); }
   void setSpeed(uint8_t level) override { _clock.setLevel(level); }
+  void setHold(bool hold) { _clock.setHold(hold); }
   uint32_t lowSeconds() const { return _clock.lowSeconds(); }
 
 private:

@@ -4,6 +4,7 @@
 #include <nvs.h>
 #if defined(BLE_PIN_CODE)
 #include <NimBLEDevice.h>
+#include "nimble_serial.h"
 #endif
 #include "target.h"
 
@@ -69,6 +70,7 @@ model::Power Esp32Platform::power() {
   model::Power p = stats.snapshot(millis());
   p.cpuMhz = cpuMhz();
   p.lowClockS = lowClockSeconds();
+#ifdef MC_BOARD_TDECK   // Bluetooth pairing probes (see docs/POWER-PLAN.md), until that bug is found
   nvs_stats_t ns;
   if (nvs_get_stats(nullptr, &ns) == ESP_OK) {
     p.nvsUsed = (uint16_t)ns.used_entries;
@@ -76,6 +78,13 @@ model::Power Esp32Platform::power() {
   }
 #if defined(BLE_PIN_CODE)
   p.bleBonds = (int8_t)NimBLEDevice::getNumBonds();
+  p.bleConnects = bleLastPeer.connects;
+  p.bleAuthOk = bleLastPeer.authOk;
+  p.bleAuthFail = bleLastPeer.authFail;
+  p.blePeerOta = bleLastPeer.otaType;
+  p.blePeerId = bleLastPeer.idType;
+  p.blePeerBonded = bleLastPeer.bonded;
+#endif
 #endif
   return p;
 }

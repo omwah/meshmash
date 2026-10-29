@@ -31,6 +31,13 @@ public:
     _level = level;
     apply();
   }
+  // A phone is pairing: leave the clock where it is. Changing it while the Bluetooth link is being
+  // set up can drop the link; the pairing lights the screen, which would change it right then.
+  void setHold(bool hold) {
+    if (hold == _hold) return;
+    _hold = hold;
+    apply();
+  }
   // How long the CPU has run on the idle clock since boot, for Diagnostics: it shows the mode works.
   uint32_t lowSeconds() const { return (_lowMs + (_low ? millis() - _lowSince : 0)) / 1000; }
 
@@ -39,7 +46,7 @@ private:
     return app::cpuTargetMhz({_board, MC_CPU_BALANCED_MHZ, MC_CPU_SAVER_MHZ, MC_IDLE_CPU_MHZ}, _level, _idle);
   }
   void apply() {
-    if (!_board) return;   // begin() has not run
+    if (!_board || _hold) return;   // begin() has not run, or a phone is pairing
     uint32_t want = target(), now = millis();
     if (want != _now) {
       setCpuFrequencyMhz(want);
@@ -55,6 +62,6 @@ private:
 
   uint32_t _board = 0, _now = 0;
   uint8_t _level = 0;
-  bool _idle = false, _low = false;
+  bool _idle = false, _low = false, _hold = false;
   uint32_t _lowMs = 0, _lowSince = 0;
 };

@@ -250,7 +250,15 @@ private:
       else if (remote) line(n, C_ACCENT, "Bluetooth   node link");
       else if (!pr.bleEnabled) line(n, C_DIM, "Bluetooth   off");
       else line(n, a.m().bleConnected() ? C_OK : C_ACCENT, "Bluetooth   %s", a.m().bleConnected() ? "connected" : "on");
-      if (p.bleBonds >= 0) line(n, C_TEXT, "Bonds       %d", p.bleBonds);
+#ifdef MC_BOARD_TDECK
+      if (p.bleBonds >= 0) {
+        line(n, C_TEXT, "Bonds       %d", p.bleBonds);
+        line(n, C_TEXT, "Phone       %u conn  %u ok  %u fail", p.bleConnects, p.bleAuthOk, p.bleAuthFail);
+        if (p.bleConnects)
+          line(n, p.blePeerBonded ? C_OK : C_WARN, "Last        addr %u/%u  %s", p.blePeerOta, p.blePeerId,
+               p.blePeerBonded ? "known" : "not bonded");
+      }
+#endif
       model::Gps g = a.m().gps();
       line(n, !g.enabled ? C_DIM : g.fix ? C_OK : C_WARN, "GPS         %s", !g.enabled ? "off" : g.fix ? "fix" : "searching");
     }

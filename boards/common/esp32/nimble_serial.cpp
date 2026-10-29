@@ -70,7 +70,13 @@ void NimbleSerialInterface::teardown() {
 
 // ---- NimBLE callbacks (host task)
 
+BleLastPeer bleLastPeer;
+
 void NimbleSerialInterface::onConnect(NimBLEServer*, ble_gap_conn_desc* desc) {
+  bleLastPeer.connects++;
+  bleLastPeer.otaType = desc->peer_ota_addr.type;
+  bleLastPeer.idType = desc->peer_id_addr.type;
+  bleLastPeer.bonded = NimBLEDevice::isBonded(NimBLEAddress(desc->peer_id_addr));
   _conn = desc->conn_handle;
   _linked = true;
   _authed = false;
@@ -83,8 +89,10 @@ void NimbleSerialInterface::onDisconnect(NimBLEServer*, ble_gap_conn_desc*) {
 
 void NimbleSerialInterface::onAuthenticationComplete(ble_gap_conn_desc* desc) {
   if (desc->sec_state.encrypted && desc->sec_state.authenticated) {
+    bleLastPeer.authOk++;
     _authed = true;
   } else {
+    bleLastPeer.authFail++;
     _linked = false;
     _server->disconnect(desc->conn_handle);
   }

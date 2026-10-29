@@ -1,6 +1,9 @@
 #include "esp32_platform.h"
 #include <Arduino.h>
 #include <esp_heap_caps.h>
+#if defined(BLE_PIN_CODE)
+#include <NimBLEDevice.h>
+#endif
 #include "target.h"
 
 uint32_t Esp32Platform::heapFree() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
@@ -65,6 +68,9 @@ model::Power Esp32Platform::power() {
   model::Power p = stats.snapshot(millis());
   p.cpuMhz = cpuMhz();
   p.lowClockS = lowClockSeconds();
+#if defined(BLE_PIN_CODE)
+  p.bleBonds = (int8_t)NimBLEDevice::getNumBonds();
+#endif
   return p;
 }
 

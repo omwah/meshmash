@@ -83,7 +83,14 @@ void Esp32Platform::saveBlePin(uint32_t pin) {
   if (nvs_set_u32(h, "blepin", pin) == ESP_OK) nvs_commit(h);
   nvs_close(h);
 }
+void Esp32Platform::clearBlePin() {
+  nvs_handle_t h;
+  if (nvs_open("meshmash", NVS_READWRITE, &h) != ESP_OK) return;
+  if (nvs_erase_key(h, "blepin") == ESP_OK) nvs_commit(h);
+  nvs_close(h);
+}
 #else
+void Esp32Platform::clearBlePin() {}
 uint32_t Esp32Platform::savedBlePin() { return 0; }
 void Esp32Platform::saveBlePin(uint32_t) {}
 #endif

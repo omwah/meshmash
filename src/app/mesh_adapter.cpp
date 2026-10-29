@@ -100,7 +100,11 @@ void MeshAdapter::setPrefs(const model::Prefs& p) {
   np->advert_loc_policy = p.gpsShareInAdvert ? ADVERT_LOC_SHARE : ADVERT_LOC_NONE;
   np->manual_add_contacts = !p.autoAddContacts;
   np->ble_pin = p.blePin;
-  if (p.blePin && p.blePin != _prefs.blePin) _plat.saveBlePin(p.blePin);   // a chosen PIN outlives a reinstall
+  if (p.blePinRandom) {
+    if (!_ui.blePinRandom) _plat.clearBlePin();   // 'each boot' keeps no PIN
+  } else if (p.blePin && p.blePin != _prefs.blePin) {
+    _plat.saveBlePin(p.blePin);                   // a chosen PIN outlives a reinstall
+  }
   auto mode = [](model::TelemMode m) { return (uint8_t)(m == model::TelemMode::Everyone ? TELEM_MODE_ALLOW_ALL
                                               : m == model::TelemMode::PerContact ? TELEM_MODE_ALLOW_FLAGS : TELEM_MODE_DENY); };
   np->telemetry_mode_base = mode(p.telemBattery);
@@ -125,22 +129,23 @@ void MeshAdapter::setPrefs(const model::Prefs& p) {
   _rev++;
 }
 
+// A fixed PIN lives in NVS only, and a random-at-every-boot one is never saved. The PIN in the
+// node's settings file is not read: it is wiped by a reinstall, which is what this avoids.
 uint32_t MeshAdapter::choosePinForBoot() {
-  if (_ui.blePinRandom) {
+  auto random = [this] {
     uint32_t r;
     _mesh->getRNG()->random((uint8_t*)&r, sizeof r);
-    _activePin = 100000 + r % 900000;
+    return 100000 + r % 900000;
+  };
+  if (_ui.blePinRandom) {
+    _activePin = random();
+    if (_plat.savedBlePin()) _plat.clearBlePin();
   } else {
-    // One PIN that stays: the saved one, or the one in the node's settings from before it was saved
-    // anywhere else, or (never set) a random one, which is then kept.
     _activePin = _plat.savedBlePin();
-    if (!_activePin) _activePin = _prefs.blePin;
-    if (!_activePin) {
-      uint32_t r;
-      _mesh->getRNG()->random((uint8_t*)&r, sizeof r);
-      _activePin = 100000 + r % 900000;
+    if (!_activePin) {   // never set (or Factory reset, or 'each boot' before): pick one and keep it
+      _activePin = random();
+      _plat.saveBlePin(_activePin);
     }
-    if (_activePin != _plat.savedBlePin()) _plat.saveBlePin(_activePin);
   }
   _mesh->setBLEPin(_activePin);  // keep MeshCore's reported PIN in sync with the BLE interface
   return _activePin;
@@ -979,6 +984,7 @@ void MeshAdapter::factoryReset() {
   _msgs.wipe();
   _fs->remove("/ui/prefs.bin");
   _store->formatFileSystem();
+  _plat.clearBlePin();   // a fresh device picks a new PIN
   _plat.reboot();
 }
 

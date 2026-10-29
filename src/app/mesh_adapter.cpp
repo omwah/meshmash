@@ -100,6 +100,7 @@ void MeshAdapter::setPrefs(const model::Prefs& p) {
   np->advert_loc_policy = p.gpsShareInAdvert ? ADVERT_LOC_SHARE : ADVERT_LOC_NONE;
   np->manual_add_contacts = !p.autoAddContacts;
   np->ble_pin = p.blePin;
+  if (p.blePin && p.blePin != _prefs.blePin) _plat.saveBlePin(p.blePin);   // a chosen PIN outlives a reinstall
   auto mode = [](model::TelemMode m) { return (uint8_t)(m == model::TelemMode::Everyone ? TELEM_MODE_ALLOW_ALL
                                               : m == model::TelemMode::PerContact ? TELEM_MODE_ALLOW_FLAGS : TELEM_MODE_DENY); };
   np->telemetry_mode_base = mode(p.telemBattery);
@@ -130,7 +131,16 @@ uint32_t MeshAdapter::choosePinForBoot() {
     _mesh->getRNG()->random((uint8_t*)&r, sizeof r);
     _activePin = 100000 + r % 900000;
   } else {
-    _activePin = _prefs.blePin ? _prefs.blePin : 123456;
+    // One PIN that stays: the saved one, or the one in the node's settings from before it was saved
+    // anywhere else, or (never set) a random one, which is then kept.
+    _activePin = _plat.savedBlePin();
+    if (!_activePin) _activePin = _prefs.blePin;
+    if (!_activePin) {
+      uint32_t r;
+      _mesh->getRNG()->random((uint8_t*)&r, sizeof r);
+      _activePin = 100000 + r % 900000;
+    }
+    if (_activePin != _plat.savedBlePin()) _plat.saveBlePin(_activePin);
   }
   _mesh->setBLEPin(_activePin);  // keep MeshCore's reported PIN in sync with the BLE interface
   return _activePin;

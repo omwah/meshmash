@@ -66,6 +66,28 @@ uint32_t Esp32Platform::cpuMhz() { return getCpuFrequencyMhz(); }
 
 void Esp32Platform::reboot() { ESP.restart(); }
 
+#if defined(BLE_PIN_CODE)   // the USB-only builds have no Bluetooth and no use for NVS
+// In NVS, which a firmware install leaves alone; the settings file does not survive one.
+uint32_t Esp32Platform::savedBlePin() {
+  nvs_handle_t h;
+  uint32_t pin = 0;
+  if (nvs_open("meshmash", NVS_READONLY, &h) != ESP_OK) return 0;
+  if (nvs_get_u32(h, "blepin", &pin) != ESP_OK) pin = 0;
+  nvs_close(h);
+  return pin;
+}
+
+void Esp32Platform::saveBlePin(uint32_t pin) {
+  nvs_handle_t h;
+  if (nvs_open("meshmash", NVS_READWRITE, &h) != ESP_OK) return;
+  if (nvs_set_u32(h, "blepin", pin) == ESP_OK) nvs_commit(h);
+  nvs_close(h);
+}
+#else
+uint32_t Esp32Platform::savedBlePin() { return 0; }
+void Esp32Platform::saveBlePin(uint32_t) {}
+#endif
+
 model::Power Esp32Platform::power() {
   model::Power p = stats.snapshot(millis());
   p.cpuMhz = cpuMhz();

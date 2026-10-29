@@ -27,6 +27,9 @@ public:
   virtual model::Power power() { return model::Power(); }   // this device's power counters
   virtual void resetPower() {}
   virtual void reboot() = 0;
+  // The Bluetooth PIN, kept where a reinstall of the firmware does not erase it (0: none saved).
+  virtual uint32_t savedBlePin() { return 0; }
+  virtual void saveBlePin(uint32_t pin) { (void)pin; }
   // A phone has connected over Bluetooth and is not yet authenticated.
   virtual bool blePairing() { return false; }
   // Random bytes for keys and tags (the device overrides with its hardware RNG).

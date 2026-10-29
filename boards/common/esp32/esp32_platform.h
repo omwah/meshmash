@@ -27,6 +27,8 @@ public:
   void powerTick(bool screenOff, uint32_t txCount, bool audioBusy);
   app::PowerStats stats;
   void reboot() override;
+  uint32_t savedBlePin() override;
+  void saveBlePin(uint32_t pin) override;
   bool blePairing() override { return blePairingFn && blePairingFn(); }
   bool (*blePairingFn)() = nullptr;
   void randomBytes(uint8_t* out, int n) override { esp_fill_random(out, n); }

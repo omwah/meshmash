@@ -1,6 +1,11 @@
-# The Bluetooth PIN: a fresh device picks a new random one at every boot, and a
-# fixed one, once chosen, is kept across a restart.
+# The Bluetooth PIN: a fresh device picks a random one once and keeps it, and a new random one
+# at every boot is a choice; each is kept across a restart.
 # both-modes
+expect pinmode fixed
+pref pin random
+expect pinmode random
+reboot
+wait 3000
 expect pinmode random
 pref pin fixed
 expect pinmode fixed
